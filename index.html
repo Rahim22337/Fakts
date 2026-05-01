@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         :root { --bg: #1c1c1d; --text: #fff; --btn: #007aff; --sec: #2c2c2e; --accent: #f1c40f; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; touch-action: none; }
         .tab-content { display: none; padding: 15px; height: calc(100vh - 80px); overflow-y: auto; box-sizing: border-box; }
         .active { display: block; }
         
@@ -22,16 +22,22 @@
         input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #3d3d42; color: #fff; box-sizing: border-box; }
 
         /* ИИ Чат */
-        #chat-area { height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid #333; }
-        .m { padding: 10px; border-radius: 12px; max-width: 85%; font-size: 14px; }
+        #chat-area { height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom:10px;}
+        .m { padding: 12px; border-radius: 12px; max-width: 85%; font-size: 14px; line-height: 1.4; }
         .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; }
         .user { background: var(--btn); align-self: flex-end; }
 
         /* 2048 Стили */
         .grid { width: 280px; height: 280px; background: #bbada0; border-radius: 6px; margin: 10px auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; box-sizing: border-box; touch-action: none; }
-        .cell { width: 57px; height: 57px; background: rgba(238, 228, 218, 0.35); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: #776e65; transition: transform 0.1s; }
+        .cell { width: 57px; height: 57px; background: rgba(238, 228, 218, 0.35); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: #776e65; transition: 0.1s; }
         .v2 { background: #eee4da; } .v4 { background: #ede0c8; } .v8 { background: #f2b179; color: #fff; }
         .v16 { background: #f59563; color: #fff; } .v32 { background: #f67c5f; color: #fff; }
+        .v64 { background: #f65e3b; color: #fff; } .v128 { background: #edcf72; color: #fff; font-size:16px;}
+        .v256 { background: #edcc61; color: #fff; font-size:16px;} .v512 { background: #edc850; color: #fff; font-size:16px;}
+        .v1024 { background: #edc53f; color: #fff; font-size:14px;} .v2048 { background: #edc22e; color: #fff; font-size:14px; box-shadow: 0 0 10px yellow;}
+
+        /* Поле чудес клава */
+        .pc-key { background: #3d3d42; padding: 10px 0; border-radius: 6px; text-align: center; font-weight: bold; cursor:pointer;}
 
         .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 15px; }
     </style>
@@ -47,7 +53,7 @@
     </div>
 
     <div id="search" class="tab-content">
-        <input type="text" id="s-in" placeholder="О чем найти факт?">
+        <input type="text" id="s-in" placeholder="Что ищем? (напр. Тигр)">
         <button onclick="wiki()" style="margin-top:10px;">🔍 Найти</button>
         <div id="s-res" class="card" style="margin-top:15px; display:none;">
             <p id="s-out"></p>
@@ -55,29 +61,35 @@
     </div>
 
     <div id="ai" class="tab-content">
-        <div id="chat-area"></div>
+        <div id="chat-area">
+            <div class="m ai">Привет! Я настоящий ИИ. Можешь спросить меня о чем угодно, или просто давай поболтаем!</div>
+        </div>
         <div style="display:flex; gap:5px;">
-            <input type="text" id="ai-in" placeholder="Спроси что угодно...">
+            <input type="text" id="ai-in" placeholder="Напиши сообщение...">
             <button onclick="ask()" style="width:60px;">🚀</button>
         </div>
     </div>
 
     <div id="games" class="tab-content">
-        <div class="card" onclick="openGame('g2048')">🔢 Игра 2048 (Свайпы)</div>
+        <div class="card" onclick="openGame('g2048')">🔢 Игра 2048</div>
         <div class="card" onclick="openGame('pc')">🎡 Поле Чудес</div>
-        <div class="card" onclick="openGame('cl')">💎 Кликер Магнат</div>
+        <div class="card" onclick="openGame('cl')">💎 Кликер</div>
     </div>
 
     <div id="g2048" class="game-win">
         <button onclick="closeGame()" style="width:60px;">⬅</button>
-        <h3 style="text-align:center;">Счет: <span id="sc-val">0</span></h3>
+        <h3 style="text-align:center; margin-top:5px;">Счет: <span id="sc-val">0</span></h3>
         <div class="grid" id="grid"></div>
         <p style="text-align:center; color:#aaa;">Свайпай пальцем по полю!</p>
     </div>
 
     <div id="pc" class="game-win">
         <button onclick="closeGame()" style="width:60px;">⬅</button>
-        <div id="pc-word" style="font-size:30px; text-align:center; margin:40px 0; letter-spacing:5px;"></div>
+        <div style="text-align:center; margin-top: 10px;">
+            <div id="pc-hint" style="color:var(--accent); font-style:italic;"></div>
+            <div id="pc-lives" style="font-size:20px; margin:10px 0;">❤️❤️❤️❤️❤️</div>
+        </div>
+        <div id="pc-word" style="font-size:35px; text-align:center; margin:20px 0; letter-spacing:8px; font-family:monospace;"></div>
         <div id="pc-kb" style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px;"></div>
     </div>
 
@@ -85,7 +97,7 @@
         <button onclick="closeGame()" style="width:60px;">⬅</button>
         <div style="text-align:center; margin-top:50px;">
             <h1 id="cl-bal">0 💎</h1>
-            <div onclick="tap()" style="font-size:100px; cursor:pointer;">💎</div>
+            <div onclick="tap()" style="font-size:120px; cursor:pointer;">💎</div>
         </div>
     </div>
 
@@ -109,47 +121,55 @@
         // --- ФАКТЫ ---
         async function nextFact() {
             const t = document.getElementById('f-text'), i = document.getElementById('f-img');
-            t.innerText = "Загрузка...";
-            const r = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
-            const d = await r.json();
-            const tr = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(d.text)}&langpair=en|ru`);
-            const td = await tr.json();
-            t.innerText = td.responseData.translatedText;
+            t.innerText = "Ищу факт...";
             i.src = `https://picsum.photos/400/300?random=${Math.random()}`;
+            try {
+                const r = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
+                const d = await r.json();
+                const tr = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(d.text)}&langpair=en|ru`);
+                const td = await tr.json();
+                t.innerText = td.responseData.translatedText;
+            } catch(e) { t.innerText = "Не удалось загрузить факт :("; }
         }
 
         // --- ПОИСК ---
         async function wiki(){
             const q=document.getElementById('s-in').value, o=document.getElementById('s-out');
-            if(!q) return; document.getElementById('s-res').style.display='block';
-            o.innerText = "Ищу...";
-            const r = await fetch(`https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`);
-            const d = await r.json();
-            o.innerText = d.extract || "Ничего не найдено";
+            if(!q) return; document.getElementById('s-res').style.display='block'; o.innerText = "Ищу...";
+            try {
+                const r = await fetch(`https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`);
+                const d = await r.json();
+                o.innerText = d.extract || "К сожалению, ничего не найдено.";
+            } catch(e) { o.innerText = "Ошибка поиска."; }
         }
 
-        // --- ИИ ЧАТ ---
+        // --- НАСТОЯЩИЙ ИИ ЧАТ (Обновлен!) ---
         async function ask(){
             const inp=document.getElementById('ai-in'), a=document.getElementById('chat-area');
             if(!inp.value) return;
             const q = inp.value; inp.value="";
             a.innerHTML += `<div class="m user">${q}</div>`;
-            const m = document.createElement('div'); m.className="m ai"; m.innerText="...";
+            const m = document.createElement('div'); m.className="m ai"; m.innerText="Печатает...";
             a.appendChild(m);
-            if(q.toLowerCase().includes("дела")) m.innerText = "У меня всё отлично, готов помогать тебе!";
-            else {
-                const r = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`);
-                const d = await r.json();
-                m.innerText = d.AbstractText || "Интересный вопрос! Я думаю, это связано с наукой или историей. Давай уточним?";
+            a.scrollTop = a.scrollHeight;
+            
+            try {
+                // Используем открытый текстовый LLM-провайдер Pollinations AI
+                const prompt = "Ты умный и дружелюбный ассистент, говори на русском языке. Запрос: " + q;
+                const r = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+                const text = await r.text();
+                m.innerText = text;
+            } catch(e) {
+                m.innerText = "Извини, мой мозг сейчас недоступен. Попробуй чуть позже!";
             }
             a.scrollTop = a.scrollHeight;
         }
 
-        // --- ЛОГИКА 2048 (ПОЛНАЯ) ---
-        let b2048, score=0;
+        // --- 2048 С УСЛОВИЯМИ ПОБЕДЫ/ПОРАЖЕНИЯ ---
+        let b2048, score=0, wonAlerted=false;
         function init2048(){
             b2048 = Array(4).fill().map(()=>Array(4).fill(0));
-            score = 0; addT(); addT(); draw2048();
+            score = 0; wonAlerted=false; addT(); addT(); draw2048();
         }
         function addT(){
             let empty = [];
@@ -167,7 +187,6 @@
             }));
             document.getElementById('sc-val').innerText = score;
         }
-
         function slide(row) {
             let arr = row.filter(v => v);
             for(let i=0; i<arr.length-1; i++){
@@ -176,7 +195,20 @@
             while(arr.length < 4) arr.push(0);
             return arr;
         }
-
+        function checkGameOver() {
+            if(!wonAlerted && b2048.some(row => row.includes(2048))) {
+                setTimeout(()=>alert("🎉 ПОБЕДА! Ты собрал 2048!"), 100);
+                wonAlerted = true;
+            }
+            if(b2048.some(row => row.includes(0))) return;
+            for(let r=0; r<4; r++){
+                for(let c=0; c<4; c++){
+                    if(c<3 && b2048[r][c]===b2048[r][c+1]) return;
+                    if(r<3 && b2048[r][c]===b2048[r+1][c]) return;
+                }
+            }
+            setTimeout(()=>{ alert("💀 Игра окончена! Нет ходов. Твой счет: " + score); init2048(); }, 200);
+        }
         function move(dir) {
             let old = JSON.stringify(b2048);
             for(let i=0; i<4; i++){
@@ -188,9 +220,8 @@
                     for(let r=0; r<4; r++) b2048[r][i] = col[r];
                 }
             }
-            if(old !== JSON.stringify(b2048)) { addT(); draw2048(); }
+            if(old !== JSON.stringify(b2048)) { addT(); draw2048(); checkGameOver(); }
         }
-
         let startX, startY;
         document.getElementById('grid').addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
         document.getElementById('grid').addEventListener('touchend', e=>{
@@ -199,24 +230,44 @@
             else { if(Math.abs(dy)>30) move(dy>0?'D':'U'); }
         });
 
-        // --- КЛИКЕР И ПОЛЕ ЧУДЕС ---
-        let bal=0; function tap(){ bal++; document.getElementById('cl-bal').innerText = bal + " 💎"; tg.HapticFeedback.impactOccurred('light'); }
+        // --- ПОЛЕ ЧУДЕС С УГАДЫВАНИЕМ И ЖИЗНЯМИ ---
+        const wordsDict = [
+            {w:"КОМПЬЮТЕР", h:"Умная машина на столе"},
+            {w:"ИНТЕРНЕТ", h:"Глобальная сеть"},
+            {w:"ПЛАНЕТА", h:"Круглая, летает в космосе"},
+            {w:"ТЕЛЕГРАМ", h:"Там, где ты открыл этого бота"}
+        ];
+        let pcW="", pcH="", pcG=[], pcL=5;
         
-        let pcW="ТИГР", pcG=[];
         function initPC(){
-            pcG=[]; drawPC();
+            const item = wordsDict[Math.floor(Math.random()*wordsDict.length)];
+            pcW=item.w; pcH=item.h; pcG=[]; pcL=5;
+            document.getElementById('pc-hint').innerText = "Подсказка: " + pcH;
+            
             const kb = document.getElementById('pc-kb'); kb.innerHTML="";
             "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split("").forEach(l=>{
-                const b = document.createElement('button'); b.innerText=l; b.style.padding="5px";
-                b.onclick=()=>{ pcG.push(l); drawPC(); b.disabled=true; b.style.opacity=0.3; };
+                const b = document.createElement('div'); b.className = "pc-key"; b.innerText=l;
+                b.onclick=()=>{ 
+                    if(b.style.opacity === "0.3") return;
+                    pcG.push(l); b.style.opacity=0.3; b.style.cursor="default";
+                    if(!pcW.includes(l)) pcL--;
+                    drawPC(); 
+                };
                 kb.appendChild(b);
             });
+            drawPC();
         }
         function drawPC(){
             let s=""; for(let l of pcW) s+=pcG.includes(l)?l:"_";
             document.getElementById('pc-word').innerText=s;
-            if(!s.includes("_")) alert("Победа!");
+            document.getElementById('pc-lives').innerText="❤️".repeat(pcL > 0 ? pcL : 0);
+            
+            if(!s.includes("_")) { setTimeout(()=>{alert("🎉 Верно! Это слово "+pcW); initPC();}, 200); }
+            else if(pcL <= 0) { setTimeout(()=>{alert("💀 Жизни кончились! Было загадано: "+pcW); initPC();}, 200); }
         }
+
+        // --- КЛИКЕР ---
+        let bal=0; function tap(){ bal++; document.getElementById('cl-bal').innerText = bal + " 💎"; tg.HapticFeedback.impactOccurred('light'); }
     </script>
 </body>
 </html>
