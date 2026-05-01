@@ -6,145 +6,216 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         :root { --bg: #1c1c1d; --text: #fff; --btn: #007aff; --sec: #2c2c2e; --accent: #f1c40f; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; touch-action: none; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; }
         .tab-content { display: none; padding: 15px; height: calc(100vh - 80px); overflow-y: auto; box-sizing: border-box; }
         .active { display: block; }
         
-        /* ЧАТ */
-        #chat-area { height: 75%; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; }
-        .m { padding: 12px; border-radius: 15px; max-width: 80%; font-size: 14px; line-height: 1.4; animation: pop 0.2s; }
-        .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; border-bottom-left-radius: 2px; }
-        .user { background: var(--btn); align-self: flex-end; border-bottom-right-radius: 2px; }
-        @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        /* ИГРОВОЕ ПОЛЕ 2048 */
-        .g2048-container { width: 280px; height: 280px; background: #bbada0; border-radius: 6px; margin: 20px auto; padding: 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; touch-action: none; position: relative; }
-        .tile { width: 60px; height: 60px; background: #cdc1b4; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: #776e65; transition: all 0.1s; }
-        .tile-2 { background: #eee4da; } .tile-4 { background: #ede0c8; } .tile-8 { background: #f2b179; color: #f9f6f2; }
-        .tile-16 { background: #f59563; color: #f9f6f2; } .tile-32 { background: #f67c5f; color: #f9f6f2; }
-
-        /* Кнопки и Навигация */
+        /* Навигация */
         .nav { position: fixed; bottom: 0; width: 100%; background: var(--sec); display: flex; height: 70px; border-top: 0.5px solid #333; z-index: 1000; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; opacity: 0.5; color: #fff; text-decoration: none; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; opacity: 0.5; color: #fff; }
         .nav-item.active-nav { opacity: 1; color: var(--btn); }
         .nav-item b { font-size: 20px; margin-bottom: 2px; }
+
+        /* Карточки и кнопки */
+        .card { background: var(--sec); border-radius: 16px; padding: 15px; margin-bottom: 12px; }
         button { background: var(--btn); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
-        input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #3d3d42; color: #fff; }
-        .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 20px; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #3d3d42; color: #fff; box-sizing: border-box; }
+
+        /* ИИ Чат */
+        #chat-area { height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid #333; }
+        .m { padding: 10px; border-radius: 12px; max-width: 85%; font-size: 14px; }
+        .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; }
+        .user { background: var(--btn); align-self: flex-end; }
+
+        /* 2048 Стили */
+        .grid { width: 280px; height: 280px; background: #bbada0; border-radius: 6px; margin: 10px auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; box-sizing: border-box; touch-action: none; }
+        .cell { width: 57px; height: 57px; background: rgba(238, 228, 218, 0.35); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: #776e65; transition: transform 0.1s; }
+        .v2 { background: #eee4da; } .v4 { background: #ede0c8; } .v8 { background: #f2b179; color: #fff; }
+        .v16 { background: #f59563; color: #fff; } .v32 { background: #f67c5f; color: #fff; }
+
+        .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 15px; }
     </style>
 </head>
 <body>
 
     <div id="facts" class="tab-content active">
-        <div style="background: var(--sec); padding: 15px; border-radius: 16px;">
-            <img id="fi" style="width:100%; height:200px; border-radius:12px; object-fit:cover;" src="https://picsum.photos/400/300">
-            <p id="ft" style="margin-top:15px; font-size:16px;">Нажми на кнопку, чтобы получить новый факт!</p>
+        <div class="card">
+            <img id="f-img" style="width:100%; height:180px; border-radius:12px; object-fit:cover;" src="https://picsum.photos/400/300?nature">
+            <p id="f-text" style="margin-top:10px;">Нажми кнопку, чтобы узнать факт!</p>
         </div>
-        <button onclick="loadFact()" style="margin-top:15px;">🎲 Другой факт</button>
+        <button onclick="nextFact()">🎲 Другой факт</button>
+    </div>
+
+    <div id="search" class="tab-content">
+        <input type="text" id="s-in" placeholder="О чем найти факт?">
+        <button onclick="wiki()" style="margin-top:10px;">🔍 Найти</button>
+        <div id="s-res" class="card" style="margin-top:15px; display:none;">
+            <p id="s-out"></p>
+        </div>
     </div>
 
     <div id="ai" class="tab-content">
         <div id="chat-area"></div>
-        <div style="display:flex; gap:8px;">
-            <input type="text" id="ai-in" placeholder="Спроси меня о чем угодно...">
-            <button onclick="chatAI()" style="width:60px;">🚀</button>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="ai-in" placeholder="Спроси что угодно...">
+            <button onclick="ask()" style="width:60px;">🚀</button>
         </div>
     </div>
 
     <div id="games" class="tab-content">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-            <div style="background:var(--sec); padding:20px; border-radius:15px; text-align:center;" onclick="openWin('g2k')">🔢 2048 <br><small>Свайпай!</small></div>
-            <div style="background:var(--sec); padding:20px; border-radius:15px; text-align:center;" onclick="openWin('pc')">🎡 Поле Чудес</div>
-        </div>
+        <div class="card" onclick="openGame('g2048')">🔢 Игра 2048 (Свайпы)</div>
+        <div class="card" onclick="openGame('pc')">🎡 Поле Чудес</div>
+        <div class="card" onclick="openGame('cl')">💎 Кликер Магнат</div>
     </div>
 
-    <div id="g2k" class="game-win">
-        <button onclick="closeWin()" style="width:80px; margin-bottom:10px;">⬅</button>
-        <div style="text-align:center;">
-            <h3>Счет: <span id="score">0</span></h3>
-            <div class="g2048-container" id="grid"></div>
-            <p style="color:#aaa;">Используй свайпы пальцем!</p>
+    <div id="g2048" class="game-win">
+        <button onclick="closeGame()" style="width:60px;">⬅</button>
+        <h3 style="text-align:center;">Счет: <span id="sc-val">0</span></h3>
+        <div class="grid" id="grid"></div>
+        <p style="text-align:center; color:#aaa;">Свайпай пальцем по полю!</p>
+    </div>
+
+    <div id="pc" class="game-win">
+        <button onclick="closeGame()" style="width:60px;">⬅</button>
+        <div id="pc-word" style="font-size:30px; text-align:center; margin:40px 0; letter-spacing:5px;"></div>
+        <div id="pc-kb" style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px;"></div>
+    </div>
+
+    <div id="cl" class="game-win">
+        <button onclick="closeGame()" style="width:60px;">⬅</button>
+        <div style="text-align:center; margin-top:50px;">
+            <h1 id="cl-bal">0 💎</h1>
+            <div onclick="tap()" style="font-size:100px; cursor:pointer;">💎</div>
         </div>
     </div>
 
     <div class="nav">
-        <div class="nav-item active-nav" onclick="swTab('facts', this)"><b>💡</b>Факты</div>
-        <div class="nav-item" onclick="swTab('ai', this)"><b>🤖</b>ИИ Чат</div>
-        <div class="nav-item" onclick="swTab('games', this)"><b>🎮</b>Игры</div>
+        <div class="nav-item active-nav" onclick="sw('facts',this)"><b>💡</b>Факты</div>
+        <div class="nav-item" onclick="sw('search',this)"><b>🔍</b>Поиск</div>
+        <div class="nav-item" onclick="sw('ai',this)"><b>🤖</b>ИИ Чат</div>
+        <div class="nav-item" onclick="sw('games',this)"><b>🎮</b>Игры</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
-
-        function swTab(id, el) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+        function sw(id,el){
+            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active-nav'));
             document.getElementById(id).classList.add('active'); el.classList.add('active-nav');
         }
+        function openGame(id){ document.getElementById(id).style.display='block'; if(id==='g2048') init2048(); if(id==='pc') initPC(); }
+        function closeGame(){ document.querySelectorAll('.game-win').forEach(w=>w.style.display='none'); }
 
-        function openWin(id) { document.getElementById(id).style.display = 'block'; if(id === 'g2k') init2048(); }
-        function closeWin() { document.querySelectorAll('.game-win').forEach(w => w.style.display = 'none'); }
+        // --- ФАКТЫ ---
+        async function nextFact() {
+            const t = document.getElementById('f-text'), i = document.getElementById('f-img');
+            t.innerText = "Загрузка...";
+            const r = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
+            const d = await r.json();
+            const tr = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(d.text)}&langpair=en|ru`);
+            const td = await tr.json();
+            t.innerText = td.responseData.translatedText;
+            i.src = `https://picsum.photos/400/300?random=${Math.random()}`;
+        }
 
-        // --- УЛУЧШЕННЫЙ ИИ ЧАТ ---
-        async function chatAI() {
-            const inp = document.getElementById('ai-in'), area = document.getElementById('chat-area');
+        // --- ПОИСК ---
+        async function wiki(){
+            const q=document.getElementById('s-in').value, o=document.getElementById('s-out');
+            if(!q) return; document.getElementById('s-res').style.display='block';
+            o.innerText = "Ищу...";
+            const r = await fetch(`https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`);
+            const d = await r.json();
+            o.innerText = d.extract || "Ничего не найдено";
+        }
+
+        // --- ИИ ЧАТ ---
+        async function ask(){
+            const inp=document.getElementById('ai-in'), a=document.getElementById('chat-area');
             if(!inp.value) return;
-            const q = inp.value; inp.value = "";
-            area.innerHTML += `<div class="m user">${q}</div>`;
-            const botMsg = document.createElement('div'); botMsg.className = "m ai"; botMsg.innerText = "Думаю...";
-            area.appendChild(botMsg); area.scrollTop = area.scrollHeight;
-
-            try {
-                // Используем прокси для связи с ИИ моделями
-                const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`);
-                const data = await res.json();
-                botMsg.innerText = data.AbstractText || "Я пока только учусь общаться как человек, но я знаю, что это важный вопрос! Могу найти больше инфы в поиске.";
-            } catch(e) { botMsg.innerText = "Ой, связь с мозгом прервалась!"; }
-            area.scrollTop = area.scrollHeight;
+            const q = inp.value; inp.value="";
+            a.innerHTML += `<div class="m user">${q}</div>`;
+            const m = document.createElement('div'); m.className="m ai"; m.innerText="...";
+            a.appendChild(m);
+            if(q.toLowerCase().includes("дела")) m.innerText = "У меня всё отлично, готов помогать тебе!";
+            else {
+                const r = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1`);
+                const d = await r.json();
+                m.innerText = d.AbstractText || "Интересный вопрос! Я думаю, это связано с наукой или историей. Давай уточним?";
+            }
+            a.scrollTop = a.scrollHeight;
         }
 
-        // --- 2048 СО СВАЙПАМИ ---
-        let board, score = 0;
-        function init2048() {
-            board = Array(4).fill().map(() => Array(4).fill(0)); score = 0;
-            addTile(); addTile(); render();
+        // --- ЛОГИКА 2048 (ПОЛНАЯ) ---
+        let b2048, score=0;
+        function init2048(){
+            b2048 = Array(4).fill().map(()=>Array(4).fill(0));
+            score = 0; addT(); addT(); draw2048();
         }
-        function addTile() {
+        function addT(){
             let empty = [];
-            for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(board[r][c]===0) empty.push({r,c});
-            if(empty.length) { let {r,c} = empty[Math.floor(Math.random()*empty.length)]; board[r][c] = Math.random() < 0.9 ? 2 : 4; }
+            for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(b2048[r][c]===0) empty.push({r,c});
+            if(empty.length){
+                let {r,c} = empty[Math.floor(Math.random()*empty.length)];
+                b2048[r][c] = Math.random() > 0.1 ? 2 : 4;
+            }
         }
-        function render() {
-            const g = document.getElementById('grid'); g.innerHTML = "";
-            board.forEach(row => row.forEach(val => {
-                const t = document.createElement('div'); t.className = `tile ${val ? 'tile-'+val : ''}`;
-                t.innerText = val || ""; g.appendChild(t);
+        function draw2048(){
+            const g = document.getElementById('grid'); g.innerHTML="";
+            b2048.forEach(row => row.forEach(v => {
+                const c = document.createElement('div'); c.className = `cell ${v?'v'+v:''}`;
+                c.innerText = v || ""; g.appendChild(c);
             }));
-            document.getElementById('score').innerText = score;
+            document.getElementById('sc-val').innerText = score;
         }
 
-        // Обработка свайпов
-        let tsX, tsY;
-        document.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; }, {passive: false});
-        document.addEventListener('touchend', e => {
-            let tdX = e.changedTouches[0].clientX - tsX, tdY = e.changedTouches[0].clientY - tsY;
-            if(Math.abs(tdX) > Math.abs(tdY)) { if(Math.abs(tdX) > 30) move(tdX > 0 ? 'R' : 'L'); }
-            else { if(Math.abs(tdY) > 30) move(tdY > 0 ? 'D' : 'U'); }
-        }, {passive: false});
+        function slide(row) {
+            let arr = row.filter(v => v);
+            for(let i=0; i<arr.length-1; i++){
+                if(arr[i] === arr[i+1]){ arr[i]*=2; score+=arr[i]; arr.splice(i+1, 1); }
+            }
+            while(arr.length < 4) arr.push(0);
+            return arr;
+        }
 
         function move(dir) {
-            let moved = false;
-            // Здесь должна быть логика сдвига (упрощенно для примера)
-            addTile(); render();
+            let old = JSON.stringify(b2048);
+            for(let i=0; i<4; i++){
+                if(dir==='L') b2048[i] = slide(b2048[i]);
+                if(dir==='R') b2048[i] = slide(b2048[i].reverse()).reverse();
+                if(dir==='U' || dir==='D'){
+                    let col = [b2048[0][i], b2048[1][i], b2048[2][i], b2048[3][i]];
+                    if(dir==='U') col = slide(col); else col = slide(col.reverse()).reverse();
+                    for(let r=0; r<4; r++) b2048[r][i] = col[r];
+                }
+            }
+            if(old !== JSON.stringify(b2048)) { addT(); draw2048(); }
         }
 
-        async function loadFact() {
-            const t = document.getElementById('ft'), i = document.getElementById('fi');
-            t.innerText = "Ищу факт...";
-            i.src = `https://picsum.photos/400/300?random=${Math.random()}`;
-            const res = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
-            const data = await res.json();
-            t.innerText = data.text;
+        let startX, startY;
+        document.getElementById('grid').addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; startY=e.touches[0].clientY; });
+        document.getElementById('grid').addEventListener('touchend', e=>{
+            let dx = e.changedTouches[0].clientX - startX, dy = e.changedTouches[0].clientY - startY;
+            if(Math.abs(dx) > Math.abs(dy)){ if(Math.abs(dx)>30) move(dx>0?'R':'L'); }
+            else { if(Math.abs(dy)>30) move(dy>0?'D':'U'); }
+        });
+
+        // --- КЛИКЕР И ПОЛЕ ЧУДЕС ---
+        let bal=0; function tap(){ bal++; document.getElementById('cl-bal').innerText = bal + " 💎"; tg.HapticFeedback.impactOccurred('light'); }
+        
+        let pcW="ТИГР", pcG=[];
+        function initPC(){
+            pcG=[]; drawPC();
+            const kb = document.getElementById('pc-kb'); kb.innerHTML="";
+            "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split("").forEach(l=>{
+                const b = document.createElement('button'); b.innerText=l; b.style.padding="5px";
+                b.onclick=()=>{ pcG.push(l); drawPC(); b.disabled=true; b.style.opacity=0.3; };
+                kb.appendChild(b);
+            });
+        }
+        function drawPC(){
+            let s=""; for(let l of pcW) s+=pcG.includes(l)?l:"_";
+            document.getElementById('pc-word').innerText=s;
+            if(!s.includes("_")) alert("Победа!");
         }
     </script>
 </body>
