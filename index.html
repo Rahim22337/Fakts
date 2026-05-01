@@ -3,68 +3,85 @@
 <head>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            --bg: var(--tg-theme-bg-color, #fff);
-            --text: var(--tg-theme-text-color, #000);
-            --hint: var(--tg-theme-hint-color, #999);
-            --btn: var(--tg-theme-button-color, #248bed);
-            --btn-text: var(--tg-theme-button-text-color, #fff);
-            --sec-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            --bg: var(--tg-theme-bg-color, #1a1a1a);
+            --text: var(--tg-theme-text-color, #ffffff);
+            --btn: var(--tg-theme-button-color, #3390ec);
+            --sec: var(--tg-theme-secondary-bg-color, #242424);
         }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 70px; }
-        .tab-content { display: none; padding: 20px; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s; }
         .active { display: block; }
-        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         /* Навигация */
-        .nav { position: fixed; bottom: 0; width: 100%; background: var(--sec-bg); display: flex; border-top: 1px solid #ccc; }
-        .nav-item { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; font-size: 0.9em; }
-        .nav-item.active-nav { color: var(--btn); border-top: 3px solid var(--btn); }
+        .nav { position: fixed; bottom: 0; width: 100%; background: var(--sec); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #333; z-index: 100; }
+        .nav-item { font-size: 0.8em; text-align: center; opacity: 0.6; cursor: pointer; }
+        .nav-item.active-nav { opacity: 1; color: var(--btn); }
 
-        /* Карточка */
-        .card { background: var(--sec-bg); padding: 20px; border-radius: 15px; margin-bottom: 20px; min-height: 100px; }
-        img { width: 100%; border-radius: 10px; margin-bottom: 15px; display: none; }
+        /* Элементы */
+        .card { background: var(--sec); border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        img { width: 100%; height: 180px; border-radius: 12px; object-fit: cover; margin-bottom: 10px; background: #333; }
+        input { width: 100%; padding: 12px; box-sizing: border-box; border-radius: 10px; border: none; background: #333; color: #fff; margin-bottom: 10px; }
+        button { background: var(--btn); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
         
-        input { width: 80%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 10px; }
-        button { background: var(--btn); color: var(--btn-text); border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+        /* Игра Поле Чудес */
+        .word-box { font-size: 1.8em; letter-spacing: 4px; margin: 15px 0; font-family: monospace; color: #f1c40f; }
+        .lives { color: #e74c3c; font-size: 1.2em; margin-bottom: 10px; }
+        .keyboard { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+        .key { background: #333; padding: 8px 0; border-radius: 4px; font-size: 0.7em; text-align: center; border: 1px solid #444; }
 
-        /* Стили игры */
-        .word-display { font-size: 2em; letter-spacing: 5px; margin: 20px 0; font-family: monospace; }
-        .keyboard { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
-        .key { background: var(--sec-bg); padding: 8px 2px; border-radius: 5px; font-size: 0.8em; cursor: pointer; border: 1px solid #ccc; }
+        /* Кликер */
+        .clicker-circle { width: 150px; height: 150px; background: radial-gradient(circle, #3390ec, #1c5fa3); border-radius: 50%; margin: 30px auto; display: flex; align-items: center; justify-content: center; font-size: 3em; box-shadow: 0 0 20px rgba(51,144,236,0.5); active { transform: scale(0.95); } }
     </style>
 </head>
 <body>
 
     <div id="facts" class="tab-content active">
-        <img id="fact-img" src="">
-        <div class="card" id="fact-text">Нажми на кнопку!</div>
-        <button onclick="getFact()">🎲 Случайный факт</button>
+        <div class="card">
+            <img id="fact-img" src="https://picsum.photos/400/200?grayscale">
+            <div id="fact-text" style="font-size: 1.1em;">Нажми кнопку, чтобы узнать случайный факт!</div>
+        </div>
+        <button onclick="getFact()">🎲 Новый факт</button>
     </div>
 
     <div id="search" class="tab-content">
-        <h3>🔍 Найди факт о чем угодно</h3>
-        <input type="text" id="search-input" placeholder="Напр: Тигр, Космос...">
-        <button onclick="searchWiki()">Найти</button>
-        <div class="card" id="search-res" style="margin-top:20px;">Введите слово для поиска...</div>
+        <input type="text" id="search-input" placeholder="О ком/чем найти факт? (напр. Лев)">
+        <button onclick="searchWiki()">🔍 Найти факт</button>
+        <div id="search-res-container" class="card" style="margin-top:15px; display:none;">
+            <img id="search-img" src="">
+            <div id="search-res"></div>
+        </div>
     </div>
 
     <div id="game" class="tab-content">
-        <h3>🎡 Поле Чудес</h3>
-        <div id="game-status">Отгадай слово!</div>
-        <div class="word-display" id="word-box">_ _ _ _</div>
-        <div class="keyboard" id="kb"></div>
-        <button onclick="initGame()" style="margin-top:20px; background: #ea4335;">Перезапустить</button>
+        <div class="card">
+            <h3>🎡 Поле Чудес</h3>
+            <div id="game-hint" style="color: #aaa; font-style: italic;">Подсказка появится тут</div>
+            <div class="lives" id="lives">❤️❤️❤️❤️❤️</div>
+            <div class="word-box" id="word-box">_ _ _ _</div>
+            <div class="keyboard" id="kb"></div>
+        </div>
+        <div class="card">
+            <h3>💰 Кликер</h3>
+            <div id="score">Монеты: 0</div>
+            <div class="clicker-circle" onclick="clickMoney()">💎</div>
+        </div>
     </div>
 
     <div class="nav">
         <div class="nav-item active-nav" onclick="showTab('facts', this)">💡 Факты</div>
         <div class="nav-item" onclick="showTab('search', this)">🔍 Поиск</div>
-        <div class="nav-item" onclick="showTab('game', this)">🎮 Игра</div>
+        <div class="nav-item" onclick="showTab('game', this)">🎮 Игры</div>
     </div>
 
     <script>
-        // Переключение вкладок
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
         function showTab(id, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
@@ -72,7 +89,6 @@
             el.classList.add('active-nav');
         }
 
-        // --- ЛОГИКА ФАКТОВ ---
         async function getFact() {
             const factBox = document.getElementById('fact-text');
             const img = document.getElementById('fact-img');
@@ -83,65 +99,73 @@
                 const trRes = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(data.text)}&langpair=en|ru`);
                 const trData = await trRes.json();
                 factBox.innerText = trData.responseData.translatedText;
-                img.src = "https://picsum.photos/400/200?random=" + Math.random();
-                img.style.display = 'block';
+                // Ищем картинку по первым двум словам факта
+                const keyword = data.text.split(' ').slice(0, 2).join(' ');
+                img.src = `https://source.unsplash.com/featured/?${encodeURIComponent(keyword)}`;
             } catch(e) { factBox.innerText = "Ошибка сети"; }
         }
 
-        // --- ЛОГИКА ПОИСКА (Википедия) ---
         async function searchWiki() {
             const query = document.getElementById('search-input').value;
-            const resBox = document.getElementById('search-res');
             if(!query) return;
-            resBox.innerText = "Ищу в энциклопедии...";
+            document.getElementById('search-res-container').style.display = 'block';
+            document.getElementById('search-res').innerText = "Ищу...";
             try {
-                const url = `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-                const res = await fetch(url);
+                const res = await fetch(`https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
                 const data = await res.json();
-                resBox.innerText = data.extract || "Ничего не найдено :(";
-            } catch(e) { resBox.innerText = "Ошибка поиска"; }
+                document.getElementById('search-res').innerText = data.extract || "Ничего не найдено";
+                if(data.thumbnail) document.getElementById('search-img').src = data.thumbnail.source;
+            } catch(e) { }
         }
 
-        // --- ЛОГИКА ИГРЫ ---
-        const words = ["АРБУЗ", "РОБОТ", "КИТАЙ", "ТЕКСТ", "ФАКТЫ", "ТИГР", "КНИГА"];
-        let targetWord = "";
-        let guessedLetters = [];
+        // --- ПОЛЕ ЧУДЕС ---
+        const gameData = [
+            {w: "ТИГР", h: "Самая большая кошка на Земле"},
+            {w: "ЮПИТЕР", h: "Самая большая планета системы"},
+            {w: "МУРАВЕЙ", h: "Сильнейшее насекомое"},
+            {w: "БАЙКАЛ", h: "Самое глубокое озеро"}
+        ];
+        let curWord = "", curHint = "", guessed = [], lives = 5;
 
         function initGame() {
-            targetWord = words[Math.floor(Math.random()*words.length)];
-            guessedLetters = [];
-            renderGame();
-            renderKeyboard();
+            const item = gameData[Math.floor(Math.random()*gameData.length)];
+            curWord = item.w; curHint = item.h; guessed = []; lives = 5;
+            document.getElementById('game-hint').innerText = "Тема: " + curHint;
+            updateGameUI();
+            renderKB();
         }
 
-        function renderGame() {
-            let display = "";
-            for(let char of targetWord) {
-                display += guessedLetters.includes(char) ? char : "_";
-            }
-            document.getElementById('word-box').innerText = display;
-            if(!display.includes("_")) document.getElementById('game-status').innerText = "🎉 ВЫ ВЫИГРАЛИ!";
+        function updateGameUI() {
+            let d = "";
+            for(let l of curWord) d += guessed.includes(l) ? l : "_";
+            document.getElementById('word-box').innerText = d;
+            document.getElementById('lives').innerText = "❤️".repeat(lives);
+            if(!d.includes("_")) { alert("Победа!"); initGame(); }
+            if(lives <= 0) { alert("Вы проиграли! Слово: " + curWord); initGame(); }
         }
 
-        function renderKeyboard() {
-            const kb = document.getElementById('kb');
-            kb.innerHTML = "";
+        function renderKB() {
+            const kb = document.getElementById('kb'); kb.innerHTML = "";
             "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split("").forEach(l => {
-                const b = document.createElement('div');
-                b.className = "key";
-                b.innerText = l;
-                b.onclick = () => {
-                    if(!guessedLetters.includes(l)) {
-                        guessedLetters.push(l);
-                        b.style.opacity = "0.3";
-                        renderGame();
-                    }
+                const k = document.createElement('div'); k.className = "key"; k.innerText = l;
+                k.onclick = () => {
+                    if(guessed.includes(l) || lives <= 0) return;
+                    guessed.push(l);
+                    if(!curWord.includes(l)) lives--;
+                    k.style.background = curWord.includes(l) ? "#27ae60" : "#c0392b";
+                    updateGameUI();
                 };
-                kb.appendChild(b);
+                kb.appendChild(k);
             });
         }
 
-        window.Telegram.WebApp.ready();
+        // --- КЛИКЕР ---
+        let money = 0;
+        function clickMoney() {
+            money++;
+            document.getElementById('score').innerText = "Монеты: " + money;
+        }
+
         initGame();
     </script>
 </body>
