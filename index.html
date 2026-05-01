@@ -10,7 +10,6 @@
         .tab-content { display: none; padding: 15px; height: calc(100vh - 80px); overflow-y: auto; box-sizing: border-box; }
         .active { display: block; }
         
-        /* Навигация */
         .nav { position: fixed; bottom: 0; width: 100%; background: var(--sec); display: flex; height: 70px; border-top: 0.5px solid #333; z-index: 1000; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; opacity: 0.5; color: #fff; }
         .nav-item.active-nav { opacity: 1; color: var(--btn); }
@@ -18,20 +17,21 @@
 
         .card { background: var(--sec); border-radius: 16px; padding: 15px; margin-bottom: 12px; }
         button { background: var(--btn); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
-        button:disabled { background: #555; opacity: 0.6; cursor: not-allowed; }
+        button:disabled { background: #555; opacity: 0.6; }
         input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #3d3d42; color: #fff; box-sizing: border-box; }
 
         /* ИИ ЧАТ */
-        #chat-area { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding: 5px; }
+        #chat-area { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
         .m { padding: 12px; border-radius: 15px; max-width: 85%; font-size: 14px; line-height: 1.4; }
-        .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; border-bottom-left-radius: 2px; }
-        .user { background: var(--btn); align-self: flex-end; border-bottom-right-radius: 2px; }
+        .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; }
+        .user { background: var(--btn); align-self: flex-end; }
 
         /* ИГРЫ */
         .grid { width: 280px; height: 280px; background: #bbada0; border-radius: 6px; margin: 10px auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; box-sizing: border-box; }
         .cell { width: 57px; height: 57px; background: rgba(238, 228, 218, 0.35); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; color: #776e65; }
         .v2 { background: #eee4da; } .v4 { background: #ede0c8; } .v8 { background: #f2b179; color: #fff; }
         .v16 { background: #f59563; color: #fff; } .v32 { background: #f67c5f; color: #fff; }
+        .v64 { background: #f65e3b; color: #fff; } .v128 { background: #edcf72; color: #fff; }
         .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 15px; overflow-y: auto; }
         .pc-key { background: #3d3d42; padding: 10px 0; border-radius: 6px; text-align: center; font-weight: bold; cursor:pointer;}
     </style>
@@ -41,15 +41,27 @@
     <div id="facts" class="tab-content active">
         <div class="card">
             <div style="position:relative; width:100%; height:200px; border-radius:12px; background:#333; overflow:hidden;">
-                <img id="f-img" style="width:100%; height:100%; object-fit:cover; transition: opacity 0.5s;" src="https://picsum.photos/400/300?blur">
+                <img id="f-img" style="width:100%; height:100%; object-fit:cover;" src="https://picsum.photos/400/300?blur">
                 <div id="img-loader" style="position:absolute; inset:0; background:rgba(0,0,0,0.7); display:none; flex-direction:column; align-items:center; justify-content:center;">
                     <span style="font-size:30px;">🎨</span>
-                    <small>Нейросеть рисует...</small>
+                    <small>Рисую (5-10 сек)...</small>
                 </div>
             </div>
-            <p id="f-text" style="margin-top:15px; font-size:16px;">Нажми на кнопку ниже, и я узнаю факт, а нейросеть **нарисует** его для тебя!</p>
+            <p id="f-text" style="margin-top:15px;">Нажми на кнопку для генерации факта!</p>
         </div>
-        <button onclick="generateEverything()" id="gen-btn">🎨 Сгенерировать новый факт и картинку</button>
+        <button onclick="generateEverything()" id="gen-btn">🎨 Сгенерировать факт и картинку</button>
+    </div>
+
+    <div id="search" class="tab-content">
+        <div class="card">
+            <h3>🔍 ИИ-Детектор фактов</h3>
+            <p style="font-size: 13px; color: #aaa;">Напиши слово, и я придумаю факт!</p>
+            <input type="text" id="s-in" placeholder="Напр: Чебурашка, Марс, Пицца...">
+            <button onclick="aiFactSearch()" id="s-btn" style="margin-top:10px;">Придумать факт</button>
+        </div>
+        <div id="s-res" class="card" style="display:none; border: 1px solid var(--btn);">
+            <p id="s-out" style="font-style: italic; line-height: 1.5;"></p>
+        </div>
     </div>
 
     <div id="ai" class="tab-content">
@@ -74,35 +86,34 @@
 
     <div id="pc" class="game-win">
         <button onclick="closeGame()" style="width:60px;">⬅</button>
-        <div style="text-align:center; margin-top:10px;">
-            <p id="pc-hint" style="color:var(--accent); font-style:italic;"></p>
-            <p id="pc-lives" style="font-size:20px;"></p>
-            <div id="pc-word" style="font-size:35px; letter-spacing:8px; margin:20px 0; font-family:monospace; background:#333; padding:10px; border-radius:10px;"></div>
+        <div style="text-align:center;">
+            <p id="pc-hint" style="color:var(--accent);"></p>
+            <p id="pc-lives"></p>
+            <div id="pc-word" style="font-size:30px; letter-spacing:5px; margin:20px 0; font-family:monospace;"></div>
             <div id="pc-kb" style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px;"></div>
         </div>
     </div>
 
     <div id="cl" class="game-win">
         <button onclick="closeGame()" style="width:60px;">⬅</button>
-        <div style="text-align:center; margin-top:30px;">
+        <div style="text-align:center; margin-top:20px;">
             <h1 id="cl-bal">0 💎</h1>
-            <div onclick="tap()" style="font-size:120px; cursor:pointer;">💎</div>
-            <div class="card" style="text-align:left; margin-top:20px;">
-                <button onclick="buy(1)" id="u1-btn" style="margin-bottom:10px;">⛏ Клик (+${ppc}) : ${u1c} 💎</button>
-                <button onclick="buy(2)" id="u2-btn" style="background:#28a745;">🤖 Робот (+${pps}/с) : ${u2c} 💎</button>
-            </div>
+            <div onclick="tap()" style="font-size:100px; cursor:pointer;">💎</div>
+            <button onclick="buy(1)" id="u1-btn" style="margin:10px 0;">⛏ Улучшить клик</button>
+            <button onclick="buy(2)" id="u2-btn" style="background:#28a745;">🤖 Купить робота</button>
         </div>
     </div>
 
     <div class="nav">
         <div class="nav-item active-nav" onclick="sw('facts',this)"><b>💡</b>Факты</div>
-        <div class="nav-item" onclick="sw('ai',this)"><b>🤖</b>ИИ Чат</div>
+        <div class="nav-item" onclick="sw('search',this)"><b>🔍</b>Поиск</div>
+        <div class="nav-item" onclick="sw('ai',this)"><b>🤖</b>Чат</div>
         <div class="nav-item" onclick="sw('games',this)"><b>🎮</b>Игры</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
-        let state = JSON.parse(localStorage.getItem('fDataV5')) || { bal:0, ppc:1, pps:0, u1c:50, u2c:100 };
+        let state = JSON.parse(localStorage.getItem('fDataV6')) || { bal:0, ppc:1, pps:0, u1c:50, u2c:100 };
 
         function sw(id,el){
             document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
@@ -110,53 +121,35 @@
             document.getElementById(id).classList.add('active'); el.classList.add('active-nav');
         }
 
-        // --- УЛУЧШЕННЫЕ ФАКТЫ И КАРТИНКИ (ФИКС) ---
-        async function nextFact() {
-            const t = document.getElementById('f-text'), i = document.getElementById('f-img');
-            t.innerText = "Ищу факт...";
-            i.src = "https://picsum.photos/400/300?random=" + Math.random(); 
-            try {
-                const r = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
-                const d = await r.json();
-                const tr = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(d.text)}&langpair=en|ru`);
-                const td = await tr.json();
-                t.innerText = td.responseData.translatedText;
-            } catch(e) { t.innerText = "Ошибка сети. Попробуй еще раз!"; }
-        }
-
-        // --- ГЕНЕРАТОР (ФАКТ + КАРТИНКА) ---
+        // --- БЫСТРАЯ ГЕНЕРАЦИЯ КАРТИНОК ---
         async function generateEverything() {
             const t = document.getElementById('f-text'), i = document.getElementById('f-img');
             const loader = document.getElementById('img-loader'), btn = document.getElementById('gen-btn');
-            
-            t.innerText = "🌀 Ищу факт и запускаю нейросеть...";
-            loader.style.display = 'flex'; btn.disabled = true; i.style.opacity = '0.3';
-
+            t.innerText = "🌀 Придумываю факт..."; loader.style.display = 'flex'; btn.disabled = true;
             try {
-                // 1. Получаем факт
                 const fr = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
                 const fd = await fr.json();
-                
-                // 2. Переводим факт
                 const tr = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(fd.text)}&langpair=en|ru`);
                 const td = await tr.json();
-                const factText = td.responseData.translatedText;
-                t.innerText = factText;
+                t.innerText = td.responseData.translatedText;
+                // Модель turbo для скорости
+                const seed = Math.floor(Math.random()*10000);
+                i.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(fd.text)}?width=512&height=384&nologo=true&seed=${seed}&model=turbo`;
+                i.onload = () => { loader.style.display = 'none'; btn.disabled = false; };
+            } catch(e) { loader.style.display = 'none'; btn.disabled = false; t.innerText = "Ошибка загрузки!"; }
+        }
 
-                // 3. Отправляем текст факта (на английском) в генератор Stable Diffusion
-                // Pollinations генерирует картинку прямо по ссылке, нужно только добавить random seed
-                const seed = Math.floor(Math.random() * 1000000);
-                i.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(fd.text)}?width=400&height=300&nologo=true&seed=${seed}`;
-                
-                // Ожидаем загрузки сгенерированной картинки
-                i.onload = () => {
-                    loader.style.display = 'none'; btn.disabled = false; i.style.opacity = '1';
-                };
-
-            } catch(e) {
-                t.innerText = "Упс! Нейросеть устала. Давай попробуем еще раз?";
-                loader.style.display = 'none'; btn.disabled = false; i.style.opacity = '1';
-            }
+        // --- НОВЫЙ ПОИСК (ИИ ФАКТ ПО СЛОВУ) ---
+        async function aiFactSearch() {
+            const inp = document.getElementById('s-in'), out = document.getElementById('s-out'), res = document.getElementById('s-res'), btn = document.getElementById('s-btn');
+            if(!inp.value) return;
+            btn.disabled = true; res.style.display = 'block'; out.innerText = "ИИ думает над фактом...";
+            try {
+                const prompt = `Придумай один короткий, очень удивительный и смешной факт о слове "${inp.value}". Можно выдумать. Начни со слов "А вы знали, что..."`;
+                const r = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+                out.innerText = await r.text();
+            } catch(e) { out.innerText = "ИИ не смог ничего придумать :("; }
+            btn.disabled = false;
         }
 
         // --- ИИ ЧАТ ---
@@ -168,67 +161,61 @@
             const m = document.createElement('div'); m.className="m ai"; m.innerText="...";
             a.appendChild(m); a.scrollTop = a.scrollHeight;
             try {
-                const prompt = "Ты умный ассистент, говори на русском языке. Запрос: " + q;
-                const r = await fetch(`https://text.pollinations.ai/${encodeURIComponent(prompt)}`);
+                const r = await fetch(`https://text.pollinations.ai/${encodeURIComponent(q)}`);
                 m.innerText = await r.text();
-            } catch(e) { m.innerText = "Связь прервалась!"; }
+            } catch(e) { m.innerText = "Ошибка сети."; }
             a.scrollTop = a.scrollHeight;
         }
 
-        // --- 2048 С УСЛОВИЯМИ ПОБЕДЫ/ПОРАЖЕНИЯ ---
-        let b2048, score=0, wonAlerted=false;
-        function init2048(){ b2048 = Array(4).fill().map(()=>Array(4).fill(0)); score=0; wonAlerted=false; addT(); addT(); draw2048(); }
+        // --- 2048 С ФИНАЛОМ ---
+        let b2048, score=0;
+        function init2048(){ b2048=Array(4).fill().map(()=>Array(4).fill(0)); score=0; addT(); addT(); draw2048(); }
         function addT(){
-            let em = []; for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(b2048[r][c]===0) em.push({r,c});
-            if(em.length){ let {r,c} = em[Math.floor(Math.random()*em.length)]; b2048[r][c] = Math.random()>0.1?2:4; }
+            let em=[]; for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(b2048[r][c]===0) em.push({r,c});
+            if(em.length){ let {r,c}=em[Math.floor(Math.random()*em.length)]; b2048[r][c]=Math.random()>0.1?2:4; }
         }
         function draw2048(){
-            const g = document.getElementById('grid'); g.innerHTML="";
-            b2048.forEach(row => row.forEach(v => {
-                const c = document.createElement('div'); c.className = `cell ${v?'v'+v:''}`;
-                c.innerText = v || ""; g.appendChild(c);
-            }));
-            document.getElementById('sc-val').innerText = score;
+            const g=document.getElementById('grid'); g.innerHTML="";
+            b2048.forEach(row=>row.forEach(v=>{ const c=document.createElement('div'); c.className=`cell ${v?'v'+v:''}`; c.innerText=v||""; g.appendChild(c); }));
+            document.getElementById('sc-val').innerText=score;
+            checkG();
         }
-        function slide(row) {
-            let arr = row.filter(v => v);
-            for(let i=0; i<arr.length-1; i++) if(arr[i]===arr[i+1]){ arr[i]*=2; score+=arr[i]; arr.splice(i+1, 1); }
-            while(arr.length < 4) arr.push(0); return arr;
-        }
-        function checkGameOver() {
-            if(!wonAlerted && b2048.some(row => row.includes(2048))) {
-                setTimeout(()=>alert("🎉 ПОБЕДА! Ты собрал 2048!"), 100);
-                wonAlerted = true;
-            }
-            if(b2048.some(row => row.includes(0))) return;
+        function checkG(){
+            if(b2048.flat().includes(2048)) { alert("Победа!"); init2048(); }
+            let m=false;
             for(let r=0; r<4; r++) for(let c=0; c<4; c++){
-                    if(c<3 && b2048[r][c]===b2048[r][c+1]) return;
-                    if(r<3 && b2048[r][c]===b2048[r+1][c]) return;
+                if(b2048[r][c]===0) m=true;
+                if(c<3 && b2048[r][c]===b2048[r][c+1]) m=true;
+                if(r<3 && b2048[r][c]===b2048[r+1][c]) m=true;
             }
-            setTimeout(()=>{ alert("💀 Игра окончена! Нет ходов. Счет: " + score); init2048(); }, 200);
+            if(!m) { alert("Игра окончена! Счет: "+score); init2048(); }
         }
-        function move(dir) {
-            let old = JSON.stringify(b2048);
+        function slide(row){
+            let a=row.filter(v=>v); for(let i=0; i<a.length-1; i++) if(a[i]===a[i+1]){ a[i]*=2; score+=a[i]; a.splice(i+1,1); }
+            while(a.length<4) a.push(0); return a;
+        }
+        function move(dir){
+            let old=JSON.stringify(b2048);
             for(let i=0; i<4; i++){
-                if(dir==='L') b2048[i] = slide(b2048[i]);
-                if(dir==='R') b2048[i] = slide(b2048[i].reverse()).reverse();
-                if(dir==='U' || dir==='D'){
-                    let col = [b2048[0][i], b2048[1][i], b2048[2][i], b2048[3][i]];
-                    if(dir==='U') col = slide(col); else col = slide(col.reverse()).reverse();
-                    for(let r=0; r<4; r++) b2048[r][i] = col[r];
+                if(dir==='L') b2048[i]=slide(b2048[i]);
+                if(dir==='R') b2048[i]=slide(b2048[i].reverse()).reverse();
+                if(dir==='U'||dir==='D'){
+                    let col=[b2048[0][i],b2048[1][i],b2048[2][i],b2048[3][i]];
+                    if(dir==='U') col=slide(col); else col=slide(col.reverse()).reverse();
+                    for(let r=0; r<4; r++) b2048[r][i]=col[r];
                 }
             }
-            if(old !== JSON.stringify(b2048)) { addT(); draw2048(); checkGameOver(); }
+            if(old!==JSON.stringify(b2048)){ addT(); draw2048(); }
         }
         let sx, sy;
-        document.getElementById('grid').addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; });
-        document.getElementById('grid').addEventListener('touchend', e=>{
-            let dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-            if(Math.abs(dx) > Math.abs(dy)){ if(Math.abs(dx)>30) move(dx>0?'R':'L'); }
+        document.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; });
+        document.addEventListener('touchend', e=>{
+            let dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+            if(Math.abs(dx)>Math.abs(dy)) { if(Math.abs(dx)>30) move(dx>0?'R':'L'); }
             else { if(Math.abs(dy)>30) move(dy>0?'D':'U'); }
         });
 
-        // --- КЛИКЕР И ПОЛЕ ЧУДЕС (БЕЗ ИЗМЕНЕНИЙ) ---
+        // --- КЛИКЕР И ПОЛЕ ЧУДЕС ---
         function openGame(id){ document.getElementById(id).style.display='block'; if(id==='g2048') init2048(); if(id==='pc') initPC(); updCl(); }
         function closeGame(){ document.querySelectorAll('.game-win').forEach(w=>w.style.display='none'); }
         function updCl(){
@@ -242,18 +229,18 @@
             else if(t===2 && state.bal>=state.u2c){ state.bal-=state.u2c; state.pps++; state.u2c=Math.floor(state.u2c*1.8); }
             updCl(); save();
         }
-        function save(){ localStorage.setItem('fDataV5', JSON.stringify(state)); }
+        function save(){ localStorage.setItem('fDataV6', JSON.stringify(state)); }
         setInterval(()=>{ if(state.pps>0){ state.bal+=state.pps; updCl(); save(); } }, 1000);
 
         let pcW, pcG, pcL;
-        const wordsD = [{w:"ПЛАНЕТА",h:"Вокруг солнца летает"},{w:"СЕРДЦЕ",h:"Главный орган человека"},{w:"ТЕЛЕГРАМ",h:"Там, где ты сейчас находится"}];
         function initPC(){
-            let item = wordsD[Math.floor(Math.random()*wordsD.length)]; pcW=item.w; pcG=[]; pcL=5;
-            document.getElementById('pc-hint').innerText="Подсказка: "+item.h;
-            const kb = document.getElementById('pc-kb'); kb.innerHTML="";
+            const d=[{w:"КОСМОС",h:"Там звезды"},{w:"КОТ",h:"Мяукает"},{w:"ПИЦЦА",h:"Еда круглая"}];
+            let i=d[Math.floor(Math.random()*d.length)]; pcW=i.w; pcG=[]; pcL=5;
+            document.getElementById('pc-hint').innerText="Подсказка: "+i.h;
+            const kb=document.getElementById('pc-kb'); kb.innerHTML="";
             "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split("").forEach(l=>{
-                const b = document.createElement('div'); b.className="pc-key"; b.innerText=l;
-                b.onclick=()=>{ if(b.style.opacity==="0.3") return; pcG.push(l); b.style.opacity=0.3; if(!pcW.includes(l)) pcL--; drawPC(); };
+                const b=document.createElement('div'); b.className="pc-key"; b.innerText=l;
+                b.onclick=()=>{ if(pcG.includes(l)) return; pcG.push(l); if(!pcW.includes(l)) pcL--; b.style.opacity=0.3; drawPC(); };
                 kb.appendChild(b);
             });
             drawPC();
@@ -262,9 +249,8 @@
             let s=""; for(let l of pcW) s+=pcG.includes(l)?l:"_";
             document.getElementById('pc-word').innerText=s;
             document.getElementById('pc-lives').innerText="❤️".repeat(pcL>0?pcL:0);
-            if(!s.includes("_")) { alert("ПОБЕДА!"); initPC(); } else if(pcL<=0) { alert("ПРОИГРЫШ! Слово: "+pcW); initPC(); }
+            if(!s.includes("_")) { alert("Ура!"); initPC(); } else if(pcL<=0) { alert("Упс! Слово: "+pcW); initPC(); }
         }
-        updCl();
     </script>
 </body>
 </html>
