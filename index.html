@@ -5,236 +5,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #1c1c1d; --text: #fff; --btn: #007aff; --sec: #2c2c2e; --accent: #f1c40f; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; touch-action: none; }
-        .tab-content { display: none; padding: 15px; height: calc(100vh - 80px); overflow-y: auto; box-sizing: border-box; }
-        .active { display: block; }
+        :root { --bg: #0f0f0f; --text: #fff; --btn: #e50914; --sec: #1f1f1f; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         
-        .nav { position: fixed; bottom: 0; width: 100%; background: var(--sec); display: flex; height: 70px; border-top: 0.5px solid #333; z-index: 1000; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; opacity: 0.5; color: #fff; }
-        .nav-item.active-nav { opacity: 1; color: var(--btn); }
-        .nav-item b { font-size: 20px; margin-bottom: 2px; }
+        .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--sec); color: #fff; outline: none; }
+        button { background: var(--btn); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        .card { background: var(--sec); border-radius: 16px; padding: 15px; margin-bottom: 12px; position: relative; }
-        button { background: var(--btn); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
-        button:disabled { opacity: 0.5; }
-        input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #3d3d42; color: #fff; box-sizing: border-box; outline: none; }
+        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .movie-card { background: var(--sec); border-radius: 10px; overflow: hidden; transition: 0.3s; }
+        .movie-card img { width: 100%; height: 220px; object-fit: cover; background: #333; }
+        .movie-info { padding: 10px; font-size: 14px; text-align: center; }
 
-        /* ЧАТ */
-        #chat-area { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-        .m { padding: 12px; border-radius: 15px; max-width: 85%; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
-        .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; border-bottom-left-radius: 2px; }
-        .user { background: var(--btn); align-self: flex-end; border-bottom-right-radius: 2px; }
-
-        /* ИГРЫ */
-        .grid { width: 280px; height: 280px; background: #bbada0; border-radius: 6px; margin: 10px auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; }
-        .cell { width: 57px; height: 57px; background: rgba(238,228,218,0.35); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #776e65; }
-        .v2 { background: #eee4da; } .v4 { background: #ede0c8; } .v8 { background: #f2b179; color: #fff; }
-        .v16 { background: #f59563; color: #fff; } .v32 { background: #f67c5f; color: #fff; }
-        .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 15px; overflow-y: auto; }
-        .pc-key { background: #3d3d42; padding: 8px; border-radius: 6px; text-align: center; cursor: pointer; font-size: 14px; font-weight: bold; }
-
-        #img-loader { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; }
+        /* ОКНО ПЛЕЕРА */
+        #player-win { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; }
+        .close-btn { position: absolute; top: 20px; left: 20px; z-index: 2001; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 50%; width: 40px; height: 40px; border: none; color: #fff; }
+        iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
 
-    <div id="facts" class="tab-content active">
-        <div class="card">
-            <div style="position:relative; width:100%; height:200px; border-radius:12px; background:#333; overflow:hidden;">
-                <img id="f-img" style="width:100%; height:100%; object-fit:cover;" src="https://picsum.photos/400/300">
-                <div id="img-loader"><span>🎨</span><small>Рисую...</small></div>
-            </div>
-            <p id="f-text" style="margin-top:15px; min-height: 40px;">Нажми на кнопку для старта!</p>
+    <div class="search-box">
+        <input type="text" id="m-in" placeholder="Название фильма или аниме...">
+        <button onclick="searchMovie()">🔍</button>
+    </div>
+
+    <div class="movie-grid" id="m-grid">
         </div>
-        <button onclick="generateEverything()" id="gen-btn">🎲 Новый факт и картинка</button>
-    </div>
 
-    <div id="search" class="tab-content">
-        <div class="card">
-            <h3>🔍 ИИ-Детектор фактов</h3>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="s-in" placeholder="Слово...">
-                <button onclick="aiFactSearch()" id="s-btn" style="width: 80px;">Ок</button>
-            </div>
-        </div>
-        <div id="s-res" class="card" style="display:none;"><p id="s-out" style="margin:0;"></p></div>
-    </div>
-
-    <div id="ai" class="tab-content">
-        <div id="chat-area"></div>
-        <div style="display:flex; gap:5px;">
-            <input type="text" id="ai-in" placeholder="Спроси...">
-            <button onclick="ask()" style="width:60px;">🚀</button>
-        </div>
-    </div>
-
-    <div id="games" class="tab-content">
-        <div class="card" onclick="openGame('g2048')">🔢 2048 (Свайпай поле)</div>
-        <div class="card" onclick="openGame('pc')">🎡 Поле Чудес</div>
-        <div class="card" onclick="openGame('cl')">💎 Кликер</div>
-    </div>
-
-    <div id="g2048" class="game-win">
-        <button onclick="closeGame()">⬅ Назад</button>
-        <h3 style="text-align:center;">Счет: <span id="sc-val">0</span></h3>
-        <div class="grid" id="grid"></div>
-    </div>
-
-    <div id="pc" class="game-win">
-        <button onclick="closeGame()">⬅ Назад</button>
-        <div style="text-align:center; margin-top:10px;">
-            <p id="pc-hint" style="color:var(--accent);"></p>
-            <p id="pc-lives"></p>
-            <div id="pc-word" style="font-size:30px; letter-spacing:5px; margin:20px 0; background:#333; padding:10px; border-radius:10px;"></div>
-            <div id="pc-kb" style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px;"></div>
-        </div>
-    </div>
-
-    <div id="cl" class="game-win">
-        <button onclick="closeGame()">⬅ Назад</button>
-        <div style="text-align:center; margin-top:50px;">
-            <h1 id="cl-bal">0 💎</h1>
-            <div onclick="tap()" style="font-size:100px; cursor:pointer;">💎</div>
-        </div>
-    </div>
-
-    <div class="nav">
-        <div class="nav-item active-nav" onclick="sw('facts',this)"><b>💡</b>Факт</div>
-        <div class="nav-item" onclick="sw('search',this)"><b>🔍</b>Поиск</div>
-        <div class="nav-item" onclick="sw('ai',this)"><b>🤖</b>Чат</div>
-        <div class="nav-item" onclick="sw('games',this)"><b>🎮</b>Игры</div>
+    <div id="player-win">
+        <button class="close-btn" onclick="closePlayer()">✕</button>
+        <div id="video-container" style="width: 100%; height: 100%;"></div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp; tg.expand();
-        let bal = 0, score2048 = 0, b2048 = [];
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-        function sw(id,el){
-            document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active-nav'));
-            document.getElementById(id).classList.add('active'); el.classList.add('active-nav');
-        }
+        async function searchMovie() {
+            const query = document.getElementById('m-in').value;
+            const grid = document.getElementById('m-grid');
+            if(!query) return;
 
-        async function fetchAI(p, sys="") {
+            grid.innerHTML = "⌛ Ищу в базе данных...";
+
             try {
-                const r = await fetch(`https://text.pollinations.ai/${encodeURIComponent(p)}?system=${encodeURIComponent(sys)}`);
-                const t = await r.text();
-                return t.includes('<!DOCTYPE html>') ? "⚠️ Ошибка сервера." : t.trim();
-            } catch(e) { return "⚠️ Ошибка сети."; }
-        }
+                // Используем бесплатный API Кинопоиска (неофициальный) для поиска ID и инфы
+                // А потом свяжем это с плеером.
+                const res = await fetch(`https://kinobox.tv/api/films/search?title=${encodeURIComponent(query)}`);
+                const movies = await res.json();
 
-        // --- ГЛАВНАЯ: ФАКТЫ И КАРТИНКИ ---
-        async function generateEverything() {
-            const t = document.getElementById('f-text'), i = document.getElementById('f-img'), l = document.getElementById('img-loader'), b = document.getElementById('gen-btn');
-            b.disabled = true; l.style.display = 'flex';
-            try {
-                const fr = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
-                const fd = await fr.json();
-                t.innerText = await fetchAI(`Переведи на русский очень точно: ${fd.text}`, "Ты переводчик.");
-                
-                const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fd.text)}?width=512&height=384&seed=${Date.now()}&model=turbo`;
-                i.src = imgUrl;
-                i.onload = () => { l.style.display = 'none'; b.disabled = false; };
-            } catch(e) { b.disabled = false; l.style.display = 'none'; }
-        }
-
-        async function aiFactSearch() {
-            const inp = document.getElementById('s-in'), out = document.getElementById('s-out'), res = document.getElementById('s-res'), btn = document.getElementById('s-btn');
-            if(!inp.value) return;
-            btn.disabled = true; res.style.display = 'block'; out.innerText = "🕵️‍♂️ Думаю...";
-            out.innerText = await fetchAI(`Придумай короткий факт про ${inp.value}`, "Отвечай ТОЛЬКО текстом факта. Начни с 'А вы знали'.");
-            btn.disabled = false;
-        }
-
-        async function ask() {
-            const inp = document.getElementById('ai-in'), area = document.getElementById('chat-area');
-            if(!inp.value) return;
-            const q = inp.value; inp.value = "";
-            area.innerHTML += `<div class="m user">${q}</div>`;
-            const m = document.createElement('div'); m.className = "m ai"; m.innerText = "...";
-            area.appendChild(m); area.scrollTop = area.scrollHeight;
-            m.innerText = await fetchAI(q, "Ты крутой ассистент.");
-            area.scrollTop = area.scrollHeight;
-        }
-
-        // --- ЛОГИКА 2048 ---
-        function init2048() {
-            score2048 = 0; b2048 = Array(4).fill().map(() => Array(4).fill(0));
-            addTile(); addTile(); draw2048();
-        }
-        function addTile() {
-            let empty = [];
-            for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(b2048[r][c]===0) empty.push({r,c});
-            if(empty.length) {
-                let {r,c} = empty[Math.floor(Math.random()*empty.length)];
-                b2048[r][c] = Math.random() > 0.1 ? 2 : 4;
+                grid.innerHTML = "";
+                movies.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.innerHTML = `
+                        <img src="${m.posterUrl || 'https://via.placeholder.com/200x300?text=No+Poster'}" onclick="playMovie('${m.id}')">
+                        <div class="movie-info">${m.title} (${m.year || '?'})</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch(e) {
+                grid.innerHTML = "❌ Ошибка поиска. Попробуй другое название.";
             }
         }
-        function draw2048() {
-            const g = document.getElementById('grid'); g.innerHTML = "";
-            b2048.forEach(row => row.forEach(v => {
-                const c = document.createElement('div'); c.className = `cell ${v?'v'+v:''}`;
-                c.innerText = v || ""; g.appendChild(c);
-            }));
-            document.getElementById('sc-val').innerText = score2048;
-        }
-        function move(dir) {
-            let old = JSON.stringify(b2048);
-            for(let i=0; i<4; i++) {
-                let row = dir==='L'||dir==='R' ? b2048[i] : [b2048[0][i], b2048[1][i], b2048[2][i], b2048[3][i]];
-                if(dir==='R'||dir==='D') row.reverse();
-                let combined = slide(row);
-                if(dir==='R'||dir==='D') combined.reverse();
-                for(let j=0; j<4; j++) {
-                    if(dir==='L'||dir==='R') b2048[i][j] = combined[j];
-                    else b2048[j][i] = combined[j];
-                }
-            }
-            if(old !== JSON.stringify(b2048)) { addTile(); draw2048(); }
-        }
-        function slide(row) {
-            let arr = row.filter(v => v);
-            for(let i=0; i<arr.length-1; i++) {
-                if(arr[i] === arr[i+1]) { arr[i] *= 2; score2048 += arr[i]; arr.splice(i+1, 1); }
-            }
-            while(arr.length < 4) arr.push(0);
-            return arr;
+
+        function playMovie(id) {
+            const win = document.getElementById('player-win');
+            const container = document.getElementById('video-container');
+            
+            win.style.display = 'block';
+            
+            // Вставляем универсальный плеер Kinobox
+            // Он сам ищет видео по всем пиратским базам (Kodik, HDVB, Bazon и т.д.)
+            container.innerHTML = `<iframe src="https://kinobox.tv/embed/kp/${id}" allowfullscreen></iframe>`;
+            
+            tg.HapticFeedback.impactOccurred('medium');
         }
 
-        // --- ЛОГИКА ПОЛЕ ЧУДЕС ---
-        let pcW, pcG, pcL;
-        function initPC() {
-            const d=[{w:"ТИГР",h:"Большая кошка в полоску"},{w:"АЛМАЗ",h:"Самый твердый минерал"},{w:"МОСКВА",h:"Столица России"}];
-            let i=d[Math.floor(Math.random()*d.length)]; pcW=i.w; pcG=[]; pcL=5;
-            document.getElementById('pc-hint').innerText="Подсказка: "+i.h;
-            const kb=document.getElementById('pc-kb'); kb.innerHTML="";
-            "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split("").forEach(l=>{
-                const b=document.createElement('div'); b.className="pc-key"; b.innerText=l;
-                b.onclick=()=>{ if(pcG.includes(l)) return; pcG.push(l); if(!pcW.includes(l)) pcL--; b.style.opacity=0.3; drawPC(); };
-                kb.appendChild(b);
-            });
-            drawPC();
+        function closePlayer() {
+            document.getElementById('player-win').style.display = 'none';
+            document.getElementById('video-container').innerHTML = ""; // Останавливаем видео
         }
-        function drawPC() {
-            let s=""; for(let l of pcW) s+=pcG.includes(l)?l:"_";
-            document.getElementById('pc-word').innerText=s;
-            document.getElementById('pc-lives').innerText="❤️".repeat(pcL>0?pcL:0);
-            if(!s.includes("_")) { alert("Победа!"); initPC(); } else if(pcL<=0) { alert("Слово: "+pcW); initPC(); }
-        }
-
-        function openGame(id){ document.getElementById(id).style.display='block'; if(id==='g2048') init2048(); if(id==='pc') initPC(); }
-        function closeGame(){ document.querySelectorAll('.game-win').forEach(w=>w.style.display='none'); }
-        function tap(){ bal++; document.getElementById('cl-bal').innerText = bal + " 💎"; tg.HapticFeedback.impactOccurred('light'); }
-
-        // Свайпы для 2048
-        let tsX, tsY;
-        document.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; });
-        document.addEventListener('touchend', e => {
-            let dx = e.changedTouches[0].clientX - tsX, dy = e.changedTouches[0].clientY - tsY;
-            if(Math.abs(dx)>Math.abs(dy)) { if(Math.abs(dx)>30) move(dx>0?'R':'L'); }
-            else { if(Math.abs(dy)>30) move(dy>0?'D':'U'); }
-        });
     </script>
 </body>
 </html>
