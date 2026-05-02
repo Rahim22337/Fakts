@@ -5,87 +5,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #0f0f0f; --text: #fff; --btn: #e50914; --sec: #1f1f1f; }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        :root { --bg: #0b0b0b; --accent: #e50914; --card: #1a1a1a; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
         
-        .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: var(--sec); color: #fff; outline: none; }
-        button { background: var(--btn); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .search-area { position: sticky; top: 0; background: var(--bg); padding-bottom: 15px; z-index: 100; }
+        .input-group { display: flex; gap: 8px; }
+        input { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
+        button { background: var(--accent); color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
-        .movie-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .movie-card { background: var(--sec); border-radius: 10px; overflow: hidden; transition: 0.3s; }
-        .movie-card img { width: 100%; height: 220px; object-fit: cover; background: #333; }
-        .movie-info { padding: 10px; font-size: 14px; text-align: center; }
+        .results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; }
+        .item { background: var(--card); border-radius: 12px; overflow: hidden; position: relative; border: 1px solid #222; }
+        .item img { width: 100%; height: 240px; object-fit: cover; }
+        .item-info { padding: 10px; font-size: 13px; text-align: center; }
+        .item-year { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-        /* ОКНО ПЛЕЕРА */
-        #player-win { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; }
-        .close-btn { position: absolute; top: 20px; left: 20px; z-index: 2001; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 50%; width: 40px; height: 40px; border: none; color: #fff; }
+        #player-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; }
+        .close-p { position: absolute; top: 15px; left: 15px; z-index: 1001; background: #333; color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; }
         iframe { width: 100%; height: 100%; border: none; }
+        
+        .loading { text-align: center; color: #888; margin-top: 50px; }
     </style>
 </head>
 <body>
 
-    <div class="search-box">
-        <input type="text" id="m-in" placeholder="Название фильма или аниме...">
-        <button onclick="searchMovie()">🔍</button>
+    <div class="search-area">
+        <div class="input-group">
+            <input type="text" id="q" placeholder="Название фильма или аниме..." onkeypress="if(event.key==='Enter') search()">
+            <button onclick="search()">Найти</button>
+        </div>
     </div>
 
-    <div class="movie-grid" id="m-grid">
-        </div>
+    <div id="status" class="loading"></div>
+    <div class="results" id="res"></div>
 
-    <div id="player-win">
-        <button class="close-btn" onclick="closePlayer()">✕</button>
-        <div id="video-container" style="width: 100%; height: 100%;"></div>
+    <div id="player-overlay">
+        <button class="close-p" onclick="stop()">✕</button>
+        <div id="video-frame" style="width:100%; height:100%;"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        async function searchMovie() {
-            const query = document.getElementById('m-in').value;
-            const grid = document.getElementById('m-grid');
+        async function search() {
+            const query = document.getElementById('q').value;
+            const resDiv = document.getElementById('res');
+            const status = document.getElementById('status');
+            
             if(!query) return;
 
-            grid.innerHTML = "⌛ Ищу в базе данных...";
+            resDiv.innerHTML = "";
+            status.innerHTML = "🌀 Ищу во всех базах данных...";
 
             try {
-                // Используем бесплатный API Кинопоиска (неофициальный) для поиска ID и инфы
-                // А потом свяжем это с плеером.
-                const res = await fetch(`https://kinobox.tv/api/films/search?title=${encodeURIComponent(query)}`);
-                const movies = await res.json();
+                // Используем самый стабильный поисковый движок для пиратских баз
+                const response = await fetch(`https://kinobox.tv/api/films/search?title=${encodeURIComponent(query)}`);
+                const data = await response.json();
 
-                grid.innerHTML = "";
-                movies.forEach(m => {
-                    const card = document.createElement('div');
-                    card.className = 'movie-card';
-                    card.innerHTML = `
-                        <img src="${m.posterUrl || 'https://via.placeholder.com/200x300?text=No+Poster'}" onclick="playMovie('${m.id}')">
-                        <div class="movie-info">${m.title} (${m.year || '?'})</div>
+                status.innerHTML = "";
+                
+                if(!data || data.length === 0) {
+                    status.innerHTML = "Ничего не нашлось. Попробуй другое название!";
+                    return;
+                }
+
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'item';
+                    div.onclick = () => play(item.id);
+                    div.innerHTML = `
+                        <div class="item-year">${item.year || '...'}</div>
+                        <img src="${item.posterUrl || 'https://via.placeholder.com/200x300?text=No+Poster'}">
+                        <div class="item-info">
+                            <b>${item.title}</b><br>
+                            <small style="color:#aaa">${item.titleOriginal || ''}</small>
+                        </div>
                     `;
-                    grid.appendChild(card);
+                    resDiv.appendChild(div);
                 });
-            } catch(e) {
-                grid.innerHTML = "❌ Ошибка поиска. Попробуй другое название.";
+            } catch (e) {
+                status.innerHTML = "⚠️ Ошибка связи с базой. Попробуй включить/выключить VPN или подожди минуту.";
             }
         }
 
-        function playMovie(id) {
-            const win = document.getElementById('player-win');
-            const container = document.getElementById('video-container');
+        function play(kpId) {
+            const overlay = document.getElementById('player-overlay');
+            const frame = document.getElementById('video-frame');
+            overlay.style.display = 'block';
             
-            win.style.display = 'block';
-            
-            // Вставляем универсальный плеер Kinobox
-            // Он сам ищет видео по всем пиратским базам (Kodik, HDVB, Bazon и т.д.)
-            container.innerHTML = `<iframe src="https://kinobox.tv/embed/kp/${id}" allowfullscreen></iframe>`;
-            
-            tg.HapticFeedback.impactOccurred('medium');
+            // Вставляем плеер-агрегатор, который сам подбирает рабочую озвучку и источник
+            frame.innerHTML = `<iframe src="https://kinobox.tv/embed/kp/${kpId}" allowfullscreen></iframe>`;
+            tg.HapticFeedback.impactOccurred('heavy');
         }
 
-        function closePlayer() {
-            document.getElementById('player-win').style.display = 'none';
-            document.getElementById('video-container').innerHTML = ""; // Останавливаем видео
+        function stop() {
+            document.getElementById('player-overlay').style.display = 'none';
+            document.getElementById('video-frame').innerHTML = ""; 
         }
     </script>
 </body>
