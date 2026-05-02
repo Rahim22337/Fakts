@@ -5,113 +5,113 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #0b0b0b; --accent: #ff0000; --card: #161616; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; overflow-x: hidden; }
+        :root { --bg: #0b0b0b; --accent: #ff0000; --card: #1a1a1a; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
         
-        .search-container { position: sticky; top: 0; background: var(--bg); z-index: 100; padding-bottom: 10px; }
-        input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; }
+        /* Поиск */
+        .search-area { position: sticky; top: 0; background: var(--bg); z-index: 100; padding-bottom: 10px; }
+        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; }
 
-        .suggestions { background: var(--card); border-radius: 12px; margin-top: 10px; overflow: hidden; display: none; border: 1px solid #222; }
-        .item { display: flex; gap: 15px; padding: 10px; border-bottom: 1px solid #222; align-items: center; cursor: pointer; }
-        .item:active { background: #222; }
-        .item img { width: 50px; height: 75px; border-radius: 6px; object-fit: cover; }
-        .item-info b { display: block; font-size: 14px; margin-bottom: 4px; }
-        .item-info span { font-size: 12px; color: #888; }
+        .results { background: var(--card); border-radius: 12px; margin-top: 10px; display: none; border: 1px solid #222; }
+        .item { display: flex; gap: 12px; padding: 10px; border-bottom: 1px solid #222; align-items: center; }
+        .item img { width: 45px; height: 65px; border-radius: 5px; object-fit: cover; }
+        .item b { font-size: 14px; display: block; }
 
+        /* Плеер */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; flex-direction: column; }
-        .top-nav { padding: 10px; display: flex; justify-content: space-between; align-items: center; background: #111; }
-        .close-btn { background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 8px; font-weight: bold; }
+        .p-nav { padding: 10px; display: flex; gap: 10px; background: #111; align-items: center; }
+        .btn { background: #333; color: #fff; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 12px; }
         
-        .iframe-wrapper { flex: 1; width: 100%; position: relative; }
+        .iframe-wrap { flex: 1; background: #000; position: relative; }
+        /* Магия против рекламы: sandbox */
         iframe { width: 100%; height: 100%; border: none; }
 
-        .loader { text-align: center; margin-top: 50px; color: #555; }
+        .sources { display: flex; gap: 8px; padding: 10px; background: #111; overflow-x: auto; border-top: 1px solid #222; }
+        .src-btn { background: #222; border: 1px solid #444; color: #ccc; padding: 8px 12px; border-radius: 6px; white-space: nowrap; font-size: 11px; }
+        .src-btn.active { border-color: var(--accent); color: #fff; background: #331111; }
     </style>
 </head>
 <body>
 
-    <div class="search-container">
-        <input type="text" id="searchInput" placeholder="Напиши название фильма или аниме..." oninput="doSearch()">
+    <div class="search-area">
+        <input type="text" id="in" placeholder="Название фильма..." oninput="search()">
     </div>
 
-    <div id="loader" class="loader">Тут появятся результаты...</div>
-    <div id="results" class="suggestions"></div>
+    <div id="res" class="results"></div>
 
     <div id="player-view">
-        <div class="top-nav">
-            <span id="m-title" style="font-size: 14px; font-weight: bold; max-width: 70%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Загрузка...</span>
-            <button class="close-btn" onclick="closePlayer()">Закрыть</button>
+        <div class="p-nav">
+            <button class="btn" onclick="closeP()">✕ Закрыть</button>
+            <span id="p-title" style="font-size: 12px; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
         </div>
-        <div class="iframe-wrapper" id="player-src"></div>
+        
+        <div class="iframe-wrap" id="v-wrap"></div>
+
+        <div class="sources">
+            <div class="src-btn active" onclick="changeSrc(this, 'vip')">Источник 1 (VIP)</div>
+            <div class="src-btn" onclick="changeSrc(this, 'gg')">Источник 2 (GG)</div>
+            <div class="src-btn" onclick="changeSrc(this, 'vidsrc')">Источник 3 (Multi)</div>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let timer;
+        let curId = "";
         const key = '8c8e1a50-6322-4135-8875-5d40a5420d86';
 
-        async function doSearch() {
-            const q = document.getElementById('searchInput').value;
-            const resBox = document.getElementById('results');
-            const loader = document.getElementById('loader');
+        async function search() {
+            const q = document.getElementById('in').value;
+            const box = document.getElementById('res');
+            if(q.length < 3) { box.style.display = 'none'; return; }
 
-            if(q.length < 3) { resBox.style.display = 'none'; return; }
-
-            clearTimeout(timer);
-            timer = setTimeout(async () => {
-                loader.innerHTML = "🔍 Ищу в базах...";
-                try {
-                    const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(q)}`, {
-                        headers: { 'X-API-KEY': key }
-                    });
-                    const d = await r.json();
-                    
-                    resBox.innerHTML = '';
-                    resBox.style.display = 'block';
-                    loader.innerHTML = '';
-
-                    d.films.forEach(f => {
-                        const div = document.createElement('div');
-                        div.className = 'item';
-                        div.onclick = () => openPlayer(f.filmId, f.nameRu || f.nameEn);
-                        div.innerHTML = `
-                            <img src="${f.posterUrlPreview}">
-                            <div class="item-info">
-                                <b>${f.nameRu || f.nameEn}</b>
-                                <span>${f.year} г. • ${f.rating || 'нет рейтинга'}</span>
-                            </div>
-                        `;
-                        resBox.appendChild(div);
-                    });
-                } catch(e) { loader.innerHTML = "Ошибка сети"; }
-            }, 600);
+            const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(q)}`, {
+                headers: { 'X-API-KEY': key }
+            });
+            const d = await r.json();
+            
+            box.innerHTML = '';
+            box.style.display = 'block';
+            d.films.slice(0, 5).forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.onclick = () => openP(f.filmId, f.nameRu || f.nameEn);
+                div.innerHTML = `<img src="${f.posterUrlPreview}"><div><b>${f.nameRu || f.nameEn}</b><small>${f.year}</small></div>`;
+                box.appendChild(div);
+            });
         }
 
-        function openPlayer(id, title) {
+        function openP(id, title) {
+            curId = id;
             document.getElementById('player-view').style.display = 'flex';
-            document.getElementById('m-title').innerText = title;
-            
-            // Используем мощный мульти-балансер BlackCloud / VBN
-            // Он автоматически включает выбор из 5-8 разных источников
-            const pBox = document.getElementById('player-src');
-            
-            // Пробуем самый стабильный хаб
-            const playerUrl = `https://vidsrc.to/embed/movie/${id}`; 
-            
-            // Если vidsrc не нравится, вот список других, которые можно подставить:
-            // 1. https://kinobox.tv/embed/kp/${id}
-            // 2. https://www.kinopoisk.gg/film/${id}/
-            
-            pBox.innerHTML = `<iframe src="https://www.kinopoisk.vip/film/${id}/" allowfullscreen></iframe>`;
-            
-            tg.HapticFeedback.notificationOccurred('success');
+            document.getElementById('p-title').innerText = title;
+            loadIframe(`https://www.kinopoisk.vip/film/${id}/`);
+            tg.HapticFeedback.impactOccurred('medium');
         }
 
-        function closePlayer() {
+        function changeSrc(btn, type) {
+            document.querySelectorAll('.src-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            let url = "";
+            if(type === 'vip') url = `https://www.kinopoisk.vip/film/${curId}/`;
+            if(type === 'gg') url = `https://www.kinopoisk.gg/film/${curId}/`;
+            if(type === 'vidsrc') url = `https://vidsrc.to/embed/movie/${curId}`;
+            
+            loadIframe(url);
+        }
+
+        function loadIframe(url) {
+            const wrap = document.getElementById('v-wrap');
+            // sandbox="allow-scripts allow-same-origin" — КЛЮЧЕВОЙ МОМЕНТ. 
+            // Он разрешает видео, но ЗАПРЕЩАЕТ открывать новые вкладки (рекламу).
+            wrap.innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"></iframe>`;
+        }
+
+        function closeP() {
             document.getElementById('player-view').style.display = 'none';
-            document.getElementById('player-src').innerHTML = '';
+            document.getElementById('v-wrap').innerHTML = '';
         }
     </script>
 </body>
