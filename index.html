@@ -5,23 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #0d0d0d; --accent: #ff0000; }
+        :root { --bg: #0d0d0d; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
-        
         input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
-
         .results { background: #1a1a1a; border-radius: 12px; display: none; border: 1px solid #222; overflow: hidden; }
         .item { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #222; align-items: center; }
-        .item img { width: 40px; height: 60px; border-radius: 4px; object-fit: cover; }
-
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; flex-direction: column; }
-        .p-nav { padding: 10px; display: flex; justify-content: space-between; background: #111; align-items: center; border-bottom: 1px solid #222; }
+        .p-nav { padding: 10px; display: flex; justify-content: space-between; background: #111; align-items: center; }
         .btn { background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 8px; font-size: 12px; }
-        
-        .iframe-wrap { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
-        iframe { width: 100%; height: 100%; border: none; z-index: 5; }
-
-        .loading-spin { position: absolute; color: #444; font-size: 14px; text-align: center; }
+        .iframe-wrap { flex: 1; position: relative; background: #000; }
+        iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -31,20 +24,15 @@
 
     <div id="player-view">
         <div class="p-nav">
-            <span id="p-title" style="font-size: 13px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;"></span>
+            <span id="p-title" style="font-size: 13px; font-weight: bold;"></span>
             <button class="btn" onclick="closeP()">Закрыть</button>
         </div>
-        
-        <div class="iframe-wrap" id="v-wrap">
-            <div class="loading-spin">⚡ Подключаем стабильный поток...</div>
-        </div>
+        <div class="iframe-wrap" id="v-wrap"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-
-        let curId = "";
         const key = '8c8e1a50-6322-4135-8875-5d40a5420d86';
 
         async function search() {
@@ -56,33 +44,27 @@
                 headers: { 'X-API-KEY': key }
             });
             const d = await r.json();
-            
-            box.innerHTML = '';
-            box.style.display = 'block';
+            box.innerHTML = ''; box.style.display = 'block';
             d.films.slice(0, 5).forEach(f => {
                 const div = document.createElement('div');
                 div.className = 'item';
                 div.onclick = () => openP(f.filmId, f.nameRu || f.nameEn);
-                div.innerHTML = `<img src="${f.posterUrlPreview}"><div><b>${f.nameRu || f.nameEn}</b></div>`;
+                div.innerHTML = `<img src="${f.posterUrlPreview}" width="40"><div><b>${f.nameRu || f.nameEn}</b></div>`;
                 box.appendChild(div);
             });
         }
 
         function openP(id, title) {
-            curId = id;
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
             
-            const wrap = document.getElementById('v-wrap');
+            // Чтобы открывался сразу Плеер 2 (без рекламы), мы добавляем якорь или параметр.
+            // Большинство таких сайтов понимают параметр ?player=2 или путь /source2/
+            const playUrl = `https://www.kinopoisk.gg/film/${id}/?player=2`; 
             
-            // Используем ту самую GG базу, но через защищенный шлюз, который сразу открывает "плеер без рекламы"
-            const playUrl = `https://www.kinopoisk.gg/film/${id}/`;
-            
-            wrap.innerHTML = `
-                <div class="loading-spin">Загрузка видео...</div>
+            document.getElementById('v-wrap').innerHTML = `
                 <iframe src="${playUrl}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
             `;
-            
             tg.HapticFeedback.impactOccurred('medium');
         }
 
