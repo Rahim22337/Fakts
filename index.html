@@ -21,7 +21,6 @@
         .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
         .movie-card .info { padding: 6px; font-size: 11px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* Кнопка удаления */
         .del-btn { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 4px; padding: 4px 6px; font-size: 12px; z-index: 10; }
         .rating { position: absolute; top: 5px; right: 5px; background: rgba(229, 9, 20, 0.9); color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; }
 
@@ -30,10 +29,11 @@
         .tab.active { color: var(--accent); }
         .tab-icon { font-size: 22px; display: block; margin-bottom: 4px; }
 
+        /* Плеер: добавил flex-grow для контента */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 5000; flex-direction: column; }
-        .p-nav { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #111; }
-        .iframe-wrap { flex: 1; background: #000; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .p-nav { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #111; height: 50px; }
+        .iframe-wrap { flex: 1; background: #000; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; }
         .btn-ui { background: #222; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
         
         .loading-text { grid-column: 1/4; text-align: center; padding: 20px; color: #666; }
@@ -84,7 +84,9 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand();
+        // Убрали принудительный tg.expand() по твоей просьбе
+        tg.ready();
+
         const API_KEY = '8c8e1a50-6322-4135-8875-5d40a5420d86';
         
         let page = 1;
@@ -175,12 +177,15 @@
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
             
-            // ЖЕСТКИЙ ВЫЗОВ ПЛЕЕРА 2
+            // ИСПРАВЛЕННЫЙ ВЫЗОВ ПЛЕЕРА С РАЗРЕШЕНИЕМ НА ПОЛНЫЙ ЭКРАН
             const url = `https://www.kinopoisk.gg/film/${id}/?player=2&nocache=${Date.now()}`;
             document.getElementById('v-container').innerHTML = `
                 <iframe src="${url}" 
-                    allowfullscreen 
-                    sandbox="allow-forms allow-scripts allow-same-origin"
+                    allowfullscreen="true" 
+                    webkitallowfullscreen="true" 
+                    mozallowfullscreen="true"
+                    allow="autoplay; fullscreen; screen-wake-lock"
+                    sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"
                     style="background: #000;">
                 </iframe>`;
             
@@ -241,4 +246,5 @@
         }
     </script>
 </body>
-</html>
+                </html>
+    
