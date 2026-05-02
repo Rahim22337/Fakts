@@ -5,52 +5,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #050505; --accent: #ff0000; }
+        :root { --bg: #0d0d0d; --accent: #ff0000; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
         
-        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #111; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
+        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
 
-        .results { background: #111; border-radius: 12px; display: none; border: 1px solid #222; overflow: hidden; margin-bottom: 20px; }
+        .results { background: #1a1a1a; border-radius: 12px; display: none; border: 1px solid #222; overflow: hidden; }
         .item { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #222; align-items: center; }
-        .item:active { background: #222; }
         .item img { width: 40px; height: 60px; border-radius: 4px; object-fit: cover; }
 
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; flex-direction: column; }
-        .p-nav { padding: 10px; display: flex; justify-content: space-between; background: #000; align-items: center; border-bottom: 1px solid #222; }
-        .btn { background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 8px 12px; border-radius: 8px; font-size: 11px; }
+        .p-nav { padding: 10px; display: flex; justify-content: space-between; background: #111; align-items: center; border-bottom: 1px solid #222; }
+        .btn { background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 8px; font-size: 12px; }
         
-        .iframe-wrap { flex: 1; position: relative; background: #000; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .iframe-wrap { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
+        iframe { width: 100%; height: 100%; border: none; z-index: 5; }
 
-        .sources { display: flex; gap: 6px; padding: 10px; background: #000; overflow-x: auto; }
-        .src-btn { background: #111; border: 1px solid #333; color: #666; padding: 10px; border-radius: 8px; white-space: nowrap; font-size: 11px; flex: 1; text-align: center; }
-        .src-btn.active { border-color: var(--accent); color: #fff; background: #1a0000; }
-        
-        .status-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #444; font-size: 12px; text-align: center; pointer-events: none; }
+        .loading-spin { position: absolute; color: #444; font-size: 14px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <input type="text" id="in" placeholder="Название фильма или аниме..." oninput="search()">
+    <input type="text" id="in" placeholder="Введите название..." oninput="search()">
     <div id="res" class="results"></div>
 
     <div id="player-view">
         <div class="p-nav">
-            <span id="p-title" style="font-size: 12px; color: #aaa;"></span>
-            <div style="display:flex; gap:5px;">
-                <button class="btn" onclick="refreshPlayer()" style="color: #00ff00;">⏳ Сброс</button>
-                <button class="btn" onclick="closeP()">✕</button>
-            </div>
+            <span id="p-title" style="font-size: 13px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;"></span>
+            <button class="btn" onclick="closeP()">Закрыть</button>
         </div>
         
         <div class="iframe-wrap" id="v-wrap">
-            <div class="status-msg">Подключаем защищенный канал...</div>
-        </div>
-
-        <div class="sources">
-            <div class="src-btn active" onclick="changeSrc(this, 'void')">Сервер 1 (Стабильный)</div>
-            <div class="src-btn" onclick="changeSrc(this, 'collaps')">Сервер 2 (HD качество)</div>
-            <div class="src-btn" onclick="changeSrc(this, 'db')">Сервер 3 (Без рекламы)</div>
+            <div class="loading-spin">⚡ Подключаем стабильный поток...</div>
         </div>
     </div>
 
@@ -59,7 +45,6 @@
         tg.expand();
 
         let curId = "";
-        let curTitle = "";
         const key = '8c8e1a50-6322-4135-8875-5d40a5420d86';
 
         async function search() {
@@ -84,42 +69,21 @@
         }
 
         function openP(id, title) {
-            curId = id; curTitle = title;
+            curId = id;
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
-            changeSrc(document.querySelector('.src-btn'), 'void');
-            tg.HapticFeedback.impactOccurred('medium');
-        }
-
-        function changeSrc(btn, type) {
-            document.querySelectorAll('.src-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
             
-            let url = "";
-            // Новая подборка серверов, которые не требуют перехода в браузер
-            if(type === 'void') url = `https://vidsrc.to/embed/movie/${curId}`; // Мировой балансер
-            if(type === 'collaps') url = `https://vidsrc.me/embed/movie?kp=${curId}`; // Зеркало Vidsrc для MiniApp
-            if(type === 'db') url = `https://www.kinopoisk.vip/film/${curId}/`; // Запасной
-
-            loadIframe(url);
-        }
-
-        function loadIframe(url) {
             const wrap = document.getElementById('v-wrap');
-            // Мы убираем жесткий sandbox, но оставляем запрет на всплывающие окна
-            // Это позволит видео загрузиться, но не даст рекламе "выкинуть" тебя из бота
+            
+            // Используем ту самую GG базу, но через защищенный шлюз, который сразу открывает "плеер без рекламы"
+            const playUrl = `https://www.kinopoisk.gg/film/${id}/`;
+            
             wrap.innerHTML = `
-                <div class="status-msg">Загрузка видеопотока...</div>
-                <iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media" sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
+                <div class="loading-spin">Загрузка видео...</div>
+                <iframe src="${playUrl}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
             `;
-        }
-
-        function refreshPlayer() {
-            // Функция на случай если плеер "завис"
-            const currentSrc = document.querySelector('.src-btn.active').innerText;
-            if(currentSrc.includes("1")) changeSrc(document.querySelectorAll('.src-btn')[0], 'void');
-            else if(currentSrc.includes("2")) changeSrc(document.querySelectorAll('.src-btn')[1], 'collaps');
-            else changeSrc(document.querySelectorAll('.src-btn')[2], 'db');
+            
+            tg.HapticFeedback.impactOccurred('medium');
         }
 
         function closeP() {
