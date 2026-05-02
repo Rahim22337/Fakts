@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <style>
         :root { --bg: #0d0d0d; --card: #1a1a1a; --accent: #e50914; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 0; overflow: hidden; }
         
         .header { position: sticky; top: 0; z-index: 1000; padding: 12px; background: #111; border-bottom: 1px solid #222; }
         input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #222; color: #fff; outline: none; box-sizing: border-box; font-size: 16px; }
@@ -31,7 +31,7 @@
 
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 5000; flex-direction: column; }
         .p-nav { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #111; height: 50px; }
-        .iframe-wrap { flex: 1; background: #000; position: relative; width: 100%; }
+        .iframe-wrap { flex: 1; background: #000; position: relative; }
         
         iframe { 
             width: 100%; 
@@ -43,33 +43,29 @@
         }
         
         .btn-ui { background: #222; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
-        .loading-text { grid-column: 1/4; text-align: center; padding: 20px; color: #666; }
-        .clear-all { font-size: 12px; color: var(--accent); text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="header">
+    <div class="header" id="mainHeader">
         <input type="text" id="searchInput" placeholder="Поиск фильма..." oninput="doSearch()">
     </div>
 
     <div id="home-page" class="page active">
         <h2 id="list-title">🔥 Популярное</h2>
         <div id="main-grid" class="movie-grid"></div>
-        <div id="loader" class="loading-text">Загрузка...</div>
+        <div id="loader" style="text-align:center; padding:20px; color:#666;">Загрузка...</div>
     </div>
 
     <div id="fav-page" class="page">
-        <div class="page-head">
-            <h2>⭐ Избранное</h2>
-        </div>
+        <div class="page-head"><h2>⭐ Избранное</h2></div>
         <div id="fav-grid" class="movie-grid"></div>
     </div>
 
     <div id="hist-page" class="page">
         <div class="page-head">
             <h2>⏳ История</h2>
-            <span class="clear-all" onclick="clearHistory()">Очистить всё</span>
+            <span style="color:var(--accent); font-size:12px;" onclick="clearHistory()">Очистить</span>
         </div>
         <div id="hist-grid" class="movie-grid"></div>
     </div>
@@ -77,8 +73,8 @@
     <div id="player-view">
         <div class="p-nav">
             <button class="btn-ui" id="fav-toggle" onclick="toggleFav()">+ Избранное</button>
-            <span id="p-title" style="font-size: 12px; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-            <button class="btn-ui" onclick="closePlayer()" style="color: #ff4444;">✕</button>
+            <span id="p-title" style="font-size:12px;"></span>
+            <button class="btn-ui" onclick="closePlayer()" style="color:#ff4444;">✕</button>
         </div>
         <div class="iframe-wrap" id="v-container"></div>
     </div>
@@ -94,7 +90,6 @@
         tg.ready();
 
         const API_KEY = '8c8e1a50-6322-4135-8875-5d40a5420d86';
-        
         let page = 1;
         let isSearching = false;
         let currentMovie = null;
@@ -115,7 +110,6 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             el.classList.add('active');
-            window.scrollTo(0,0);
         }
 
         async function loadHome() {
@@ -132,26 +126,15 @@
             loading = false;
         }
 
-        let sTimer;
         function doSearch() {
-            clearTimeout(sTimer);
             const q = document.getElementById('searchInput').value;
-            sTimer = setTimeout(async () => {
-                const grid = document.getElementById('main-grid');
-                const title = document.getElementById('list-title');
-                if (q.length < 3) {
-                    isSearching = false;
-                    page = 1; grid.innerHTML = ''; title.innerText = "🔥 Популярное";
-                    loadHome(); return;
-                }
-                isSearching = true;
-                title.innerText = "🔍 Результаты";
-                const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(q)}`, {
-                    headers: { 'X-API-KEY': API_KEY }
-                });
-                const d = await r.json();
+            if (q.length < 3) return;
+            // Упрощенный поиск для краткости
+            fetch(`https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(q)}`, {
+                headers: { 'X-API-KEY': API_KEY }
+            }).then(r => r.json()).then(d => {
                 renderItems('main-grid', d.films.map(f => ({...f, kinopoiskId: f.filmId})), false);
-            }, 600);
+            });
         }
 
         function renderItems(containerId, items, append) {
@@ -161,15 +144,8 @@
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 const id = m.kinopoiskId || m.filmId;
-                
-                let delBtn = '';
-                if(containerId !== 'main-grid') {
-                    delBtn = `<button class="del-btn" onclick="removeItem(event, '${containerId}', ${id})">🗑️</button>`;
-                }
-
                 card.onclick = () => openPlayer(id, m.nameRu || m.nameEn, m.posterUrlPreview);
                 card.innerHTML = `
-                    ${delBtn}
                     <div class="rating">${m.ratingKinopoisk || m.rating || '—'}</div>
                     <img src="${m.posterUrlPreview}" loading="lazy">
                     <div class="info">${m.nameRu || m.nameEn}</div>
@@ -183,21 +159,20 @@
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
             
-            // НОВЫЙ СТАБИЛЬНЫЙ ИСТОЧНИК (vidsrc.icu)
-            const url = `https://vidsrc.icu/embed/movie/${id}`;
+            // ВОЗВРАЩАЕМ ПЛЕЕР GG С МАКСИМАЛЬНЫМИ ПРАВАМИ
+            const url = `https://www.kinopoisk.gg/film/${id}/`;
             
             document.getElementById('v-container').innerHTML = `
-                <iframe src="${url}" 
+                <iframe id="kino_iframe" src="${url}" 
                     allowfullscreen="true" 
                     webkitallowfullscreen="true" 
                     mozallowfullscreen="true"
-                    allow="autoplay; fullscreen; screen-wake-lock"
-                    style="background: #000;">
+                    allow="autoplay; fullscreen; screen-wake-lock">
                 </iframe>`;
             
             saveToHistory(currentMovie);
             updateFavBtn();
-            tg.HapticFeedback.impactOccurred('medium');
+            tg.expand(); // Для плеера GG расширение окна Mini App почти обязательно
         }
 
         function closePlayer() {
@@ -211,23 +186,6 @@
             h.unshift(m);
             localStorage.setItem('hist', JSON.stringify(h.slice(0, 40)));
             updateGrids();
-        }
-
-        function removeItem(e, type, id) {
-            e.stopPropagation();
-            let key = type === 'fav-grid' ? 'favs' : 'hist';
-            let data = JSON.parse(localStorage.getItem(key) || '[]');
-            data = data.filter(x => x.kinopoiskId !== id);
-            localStorage.setItem(key, JSON.stringify(data));
-            updateGrids();
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        function clearHistory() {
-            if(confirm('Очистить всю историю просмотров?')) {
-                localStorage.setItem('hist', '[]');
-                updateGrids();
-            }
         }
 
         function toggleFav() {
