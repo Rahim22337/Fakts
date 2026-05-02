@@ -8,49 +8,46 @@
         :root { --bg: #0b0b0b; --accent: #ff0000; --card: #1a1a1a; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
         
-        /* Поиск */
-        .search-area { position: sticky; top: 0; background: var(--bg); z-index: 100; padding-bottom: 10px; }
-        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; }
+        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
 
-        .results { background: var(--card); border-radius: 12px; margin-top: 10px; display: none; border: 1px solid #222; }
+        .results { background: var(--card); border-radius: 12px; display: none; border: 1px solid #222; overflow: hidden; }
         .item { display: flex; gap: 12px; padding: 10px; border-bottom: 1px solid #222; align-items: center; }
         .item img { width: 45px; height: 65px; border-radius: 5px; object-fit: cover; }
-        .item b { font-size: 14px; display: block; }
 
-        /* Плеер */
         #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; flex-direction: column; }
-        .p-nav { padding: 10px; display: flex; gap: 10px; background: #111; align-items: center; }
-        .btn { background: #333; color: #fff; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 12px; }
+        .p-nav { padding: 10px; display: flex; justify-content: space-between; background: #111; align-items: center; }
+        .btn { background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 8px; font-size: 12px; }
         
-        .iframe-wrap { flex: 1; background: #000; position: relative; }
-        /* Магия против рекламы: sandbox */
-        iframe { width: 100%; height: 100%; border: none; }
+        .iframe-wrap { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
+        iframe { width: 100%; height: 100%; border: none; z-index: 10; position: relative; }
+
+        /* Анимация загрузки */
+        .loading-text { position: absolute; color: #555; font-size: 14px; text-align: center; }
 
         .sources { display: flex; gap: 8px; padding: 10px; background: #111; overflow-x: auto; border-top: 1px solid #222; }
-        .src-btn { background: #222; border: 1px solid #444; color: #ccc; padding: 8px 12px; border-radius: 6px; white-space: nowrap; font-size: 11px; }
-        .src-btn.active { border-color: var(--accent); color: #fff; background: #331111; }
+        .src-btn { background: #1a1a1a; border: 1px solid #333; color: #888; padding: 10px 14px; border-radius: 8px; white-space: nowrap; font-size: 12px; transition: 0.3s; }
+        .src-btn.active { border-color: var(--accent); color: #fff; background: #2a0000; }
     </style>
 </head>
 <body>
 
-    <div class="search-area">
-        <input type="text" id="in" placeholder="Название фильма..." oninput="search()">
-    </div>
-
+    <input type="text" id="in" placeholder="Поиск фильма..." oninput="search()">
     <div id="res" class="results"></div>
 
     <div id="player-view">
         <div class="p-nav">
-            <button class="btn" onclick="closeP()">✕ Закрыть</button>
-            <span id="p-title" style="font-size: 12px; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></span>
+            <span id="p-title" style="font-size: 13px; font-weight: bold; opacity: 0.9;"></span>
+            <button class="btn" onclick="closeP()">Закрыть</button>
         </div>
         
-        <div class="iframe-wrap" id="v-wrap"></div>
+        <div class="iframe-wrap" id="v-wrap">
+            <div class="loading-text">⌛ Ищем фильм в базе...<br><small>Если долго не грузит, смени источник ниже</small></div>
+        </div>
 
         <div class="sources">
-            <div class="src-btn active" onclick="changeSrc(this, 'vip')">Источник 1 (VIP)</div>
-            <div class="src-btn" onclick="changeSrc(this, 'gg')">Источник 2 (GG)</div>
-            <div class="src-btn" onclick="changeSrc(this, 'vidsrc')">Источник 3 (Multi)</div>
+            <div class="src-btn active" onclick="changeSrc(this, 'gg')">Сервер 1 (Лучший)</div>
+            <div class="src-btn" onclick="changeSrc(this, 'alloha')">Сервер 2 (Быстрый)</div>
+            <div class="src-btn" onclick="changeSrc(this, 'bazon')">Сервер 3 (Запасной)</div>
         </div>
     </div>
 
@@ -77,7 +74,7 @@
                 const div = document.createElement('div');
                 div.className = 'item';
                 div.onclick = () => openP(f.filmId, f.nameRu || f.nameEn);
-                div.innerHTML = `<img src="${f.posterUrlPreview}"><div><b>${f.nameRu || f.nameEn}</b><small>${f.year}</small></div>`;
+                div.innerHTML = `<img src="${f.posterUrlPreview}"><div><b>${f.nameRu || f.nameEn}</b></div>`;
                 box.appendChild(div);
             });
         }
@@ -86,7 +83,7 @@
             curId = id;
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
-            loadIframe(`https://www.kinopoisk.vip/film/${id}/`);
+            changeSrc(document.querySelector('.src-btn'), 'gg');
             tg.HapticFeedback.impactOccurred('medium');
         }
 
@@ -95,18 +92,17 @@
             btn.classList.add('active');
             
             let url = "";
-            if(type === 'vip') url = `https://www.kinopoisk.vip/film/${curId}/`;
+            // Подбираем самые адекватные зеркала без лишнего мусора
             if(type === 'gg') url = `https://www.kinopoisk.gg/film/${curId}/`;
-            if(type === 'vidsrc') url = `https://vidsrc.to/embed/movie/${curId}`;
+            if(type === 'alloha') url = `https://api.alloha.tv/?token=04941a9a3baabd4643329334000302&kp=${curId}`;
+            if(type === 'bazon') url = `https://vidsrc.to/embed/movie/${curId}`; // Оставил для ин.фильмов
             
-            loadIframe(url);
-        }
-
-        function loadIframe(url) {
             const wrap = document.getElementById('v-wrap');
-            // sandbox="allow-scripts allow-same-origin" — КЛЮЧЕВОЙ МОМЕНТ. 
-            // Он разрешает видео, но ЗАПРЕЩАЕТ открывать новые вкладки (рекламу).
-            wrap.innerHTML = `<iframe src="${url}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"></iframe>`;
+            // Оставляем только самое нужное в sandbox, чтобы не ломать видеопоток
+            wrap.innerHTML = `
+                <div class="loading-text">⌛ Подключаемся к серверу...</div>
+                <iframe src="${url}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"></iframe>
+            `;
         }
 
         function closeP() {
