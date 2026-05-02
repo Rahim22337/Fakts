@@ -5,119 +5,158 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #0b0b0b; --accent: #e50914; --card: #1a1a1a; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
+        :root { --bg: #0f0f0f; --accent: #e50914; --card: #1f1f1f; --text: #fff; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
         
-        .search-area { position: sticky; top: 0; background: var(--bg); padding-bottom: 15px; z-index: 100; }
-        .input-group { display: flex; gap: 8px; }
-        input { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; font-size: 14px; }
-        button { background: var(--accent); color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 14px; }
-
-        .results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; }
-        .item { background: var(--card); border-radius: 12px; overflow: hidden; position: relative; border: 1px solid #222; cursor: pointer; }
-        .item img { width: 100%; height: 240px; object-fit: cover; background: #333; }
-        .item-info { padding: 10px; font-size: 13px; text-align: center; }
-        .item-year { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; }
-
-        #player-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; }
-        .close-p { position: absolute; top: 15px; left: 15px; z-index: 1001; background: rgba(50,50,50,0.8); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; }
-        iframe { width: 100%; height: 100%; border: none; background: #000; }
+        .header { font-size: 22px; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
         
-        .loading { text-align: center; color: #aaa; margin-top: 50px; font-size: 14px; line-height: 1.5; }
+        /* Поиск */
+        .search-box { position: relative; z-index: 100; }
+        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
+        input:focus { border-color: var(--accent); }
+
+        /* Выпадающий список подсказок */
+        .suggestions { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); border-radius: 12px; margin-top: 8px; max-height: 350px; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.8); display: none; border: 1px solid #333; }
+        .sugg-item { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #2a2a2a; cursor: pointer; align-items: center; transition: 0.2s; }
+        .sugg-item:active { background: #333; }
+        .sugg-item:last-child { border-bottom: none; }
+        .sugg-item img { width: 45px; height: 65px; border-radius: 6px; object-fit: cover; background: #111; }
+        .sugg-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .sugg-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+        .sugg-desc { font-size: 12px; color: #888; }
+        
+        .msg { padding: 15px; text-align: center; color: #aaa; font-size: 14px; }
+
+        /* Плеер */
+        #player-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; flex-direction: column; }
+        .player-header { background: #111; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+        .close-btn { background: #333; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        iframe { width: 100%; flex: 1; border: none; background: #000; }
+        
+        /* Декорация главной страницы */
+        .hero { text-align: center; margin-top: 40px; opacity: 0.5; }
+        .hero span { font-size: 50px; }
     </style>
 </head>
 <body>
 
-    <div class="search-area">
-        <div class="input-group">
-            <input type="text" id="q" placeholder="Мстители, Наруто..." onkeypress="if(event.key==='Enter') search()">
-            <button onclick="search()">Найти</button>
-        </div>
+    <div class="header">🍿 ИИ-Кинотеатр</div>
+
+    <div class="search-box">
+        <input type="text" id="q" placeholder="Введи название (Наруто, Брат...)" oninput="liveSearch()">
+        <div id="suggestions" class="suggestions"></div>
     </div>
 
-    <div id="status" class="loading">Напиши название фильма или аниме 🍿<br><small style="opacity: 0.5;">Даже если с ошибкой, я постараюсь найти.</small></div>
-    <div class="results" id="res"></div>
+    <div class="hero" id="hero">
+        <span>🎬</span>
+        <p>Начни вводить название,<br>а я предложу варианты.</p>
+    </div>
 
     <div id="player-overlay">
-        <button class="close-p" onclick="stop()">✕</button>
-        <div id="video-frame" style="width:100%; height:100%;"></div>
+        <div class="player-header">
+            <span id="player-title" style="font-weight: bold; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Загрузка плеера...</span>
+            <button class="close-btn" onclick="stop()">Назад</button>
+        </div>
+        <div id="video-frame" style="width:100%; height:100%; flex:1;"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        async function search() {
+        let timeout = null;
+        const suggBox = document.getElementById('suggestions');
+        const hero = document.getElementById('hero');
+
+        // Живой поиск с задержкой (чтобы не спамить API при каждой букве)
+        function liveSearch() {
             const query = document.getElementById('q').value.trim();
-            const resDiv = document.getElementById('res');
-            const status = document.getElementById('status');
             
-            if(!query) return;
-
-            resDiv.innerHTML = "";
-            status.innerHTML = "⏳ Обхожу блокировки и ищу в базе...";
-
-            try {
-                // 1. Формируем запрос к базе
-                const targetUrl = `https://kinobox.tv/api/films/search?title=${encodeURIComponent(query)}`;
-                
-                // 2. Оборачиваем его в CORS-прокси, чтобы Telegram не заблокировал запрос
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) throw new Error('Proxy blocked');
-                
-                const data = await response.json();
-
-                status.innerHTML = "";
-                
-                if(!data || data.length === 0) {
-                    status.innerHTML = "🤷‍♂️ Ничего не нашлось. Попробуй написать иначе.";
-                    return;
-                }
-
-                // Рисуем карточки
-                data.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'item';
-                    div.onclick = () => play(item.id);
-                    
-                    // Заглушка, если нет постера
-                    const poster = item.posterUrl ? item.posterUrl : 'https://via.placeholder.com/200x300/222222/ffffff?text=Нет+постера';
-                    
-                    div.innerHTML = `
-                        <div class="item-year">${item.year || 'N/A'}</div>
-                        <img src="${poster}">
-                        <div class="item-info">
-                            <b style="color:var(--text);">${item.title}</b><br>
-                            <small style="color:#888">${item.titleOriginal || ''}</small>
-                        </div>
-                    `;
-                    resDiv.appendChild(div);
-                });
-                
-                tg.HapticFeedback.impactOccurred('light');
-
-            } catch (e) {
-                status.innerHTML = "⚠️ Ошибка связи через прокси. Похоже, база сильно перегружена. Попробуй чуть позже.";
-                console.error(e);
+            if (query.length < 2) {
+                suggBox.style.display = 'none';
+                hero.style.display = 'block';
+                return;
             }
+
+            // Очищаем предыдущий таймер
+            clearTimeout(timeout);
+            suggBox.style.display = 'block';
+            hero.style.display = 'none';
+            suggBox.innerHTML = '<div class="msg">⏳ Ищу совпадения...</div>';
+
+            // Ждем полсекунды после того, как ты перестал печатать, и отправляем запрос
+            timeout = setTimeout(async () => {
+                try {
+                    // Используем тестовый API ключ разработчика Кинопоиска
+                    const API_KEY = '8c8e1a50-6322-4135-8875-5d40a5420d86'; 
+                    const url = `https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(query)}`;
+                    
+                    const res = await fetch(url, {
+                        headers: { 'X-API-KEY': API_KEY, 'Content-Type': 'application/json' }
+                    });
+
+                    if (res.status === 402) {
+                        suggBox.innerHTML = '<div class="msg">⚠️ Лимит ключа исчерпан.</div>';
+                        return;
+                    }
+
+                    const data = await res.json();
+                    
+                    if (!data.films || data.films.length === 0) {
+                        suggBox.innerHTML = '<div class="msg">🤷‍♂️ Ничего не найдено</div>';
+                        return;
+                    }
+
+                    suggBox.innerHTML = '';
+                    
+                    // Выводим топ 10 результатов с постерами
+                    data.films.slice(0, 10).forEach(f => {
+                        const title = f.nameRu || f.nameEn;
+                        const rating = f.rating && f.rating !== 'null' ? `⭐ ${f.rating}` : '';
+                        const poster = f.posterUrlPreview || 'https://via.placeholder.com/45x65/222/fff?text=?';
+
+                        const item = document.createElement('div');
+                        item.className = 'sugg-item';
+                        item.onclick = () => {
+                            document.getElementById('q').value = title;
+                            suggBox.style.display = 'none';
+                            play(f.filmId, title);
+                        };
+                        
+                        item.innerHTML = `
+                            <img src="${poster}">
+                            <div class="sugg-info">
+                                <div class="sugg-title">${title}</div>
+                                <div class="sugg-desc">${f.year || '...'} г. &nbsp; ${rating}</div>
+                            </div>
+                        `;
+                        suggBox.appendChild(item);
+                    });
+
+                } catch (e) {
+                    suggBox.innerHTML = '<div class="msg">⚠️ Ошибка связи с API</div>';
+                }
+            }, 500); // 500 миллисекунд задержки
         }
 
-        function play(kpId) {
+        // Запуск плеера
+        function play(kpId, title) {
             const overlay = document.getElementById('player-overlay');
             const frame = document.getElementById('video-frame');
-            overlay.style.display = 'block';
+            document.getElementById('player-title').innerText = title;
             
-            // Встраиваем плеер
+            overlay.style.display = 'flex';
+            
+            // Встраиваем плеер (он сам найдет озвучку и источники по ID Кинопоиска)
             frame.innerHTML = `<iframe src="https://kinobox.tv/embed/kp/${kpId}" allowfullscreen></iframe>`;
-            tg.HapticFeedback.impactOccurred('heavy');
+            tg.HapticFeedback.impactOccurred('medium');
         }
 
+        // Остановка плеера
         function stop() {
             document.getElementById('player-overlay').style.display = 'none';
-            document.getElementById('video-frame').innerHTML = ""; // Выключаем видео при закрытии
+            document.getElementById('video-frame').innerHTML = ""; // Убиваем плеер, чтобы звук не шел на фоне
+            hero.style.display = 'block';
         }
     </script>
 </body>
