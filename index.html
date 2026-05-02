@@ -16,11 +16,11 @@
         .nav-item b { font-size: 20px; margin-bottom: 2px; }
 
         .card { background: var(--sec); border-radius: 16px; padding: 15px; margin-bottom: 12px; position: relative; }
-        button { background: var(--btn); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; }
-        button:disabled { background: #555; opacity: 0.6; }
+        button { background: var(--btn); color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+        button:disabled { opacity: 0.5; }
         input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #3d3d42; color: #fff; box-sizing: border-box; outline: none; }
 
-        /* ЧАТ (ТВОЙ ЛЮБИМЫЙ) */
+        /* ЧАТ */
         #chat-area { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
         .m { padding: 12px; border-radius: 15px; max-width: 85%; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
         .ai { background: #3a3a3c; align-self: flex-start; color: #5ac8fa; border-bottom-left-radius: 2px; }
@@ -29,10 +29,12 @@
         /* ИГРЫ */
         .grid { width: 280px; height: 280px; background: #bbada0; border-radius: 6px; margin: 10px auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px; }
         .cell { width: 57px; height: 57px; background: rgba(238,228,218,0.35); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #776e65; }
-        .v2 { background: #eee4da; } .v8 { background: #f2b179; color: #fff; }
-        .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 15px; }
+        .v2 { background: #eee4da; } .v4 { background: #ede0c8; } .v8 { background: #f2b179; color: #fff; }
+        .v16 { background: #f59563; color: #fff; } .v32 { background: #f67c5f; color: #fff; }
+        .game-win { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1100; padding: 15px; overflow-y: auto; }
+        .pc-key { background: #3d3d42; padding: 8px; border-radius: 6px; text-align: center; cursor: pointer; font-size: 14px; font-weight: bold; }
 
-        #img-loader { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; z-index: 5; }
+        #img-loader { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: none; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -41,43 +43,56 @@
         <div class="card">
             <div style="position:relative; width:100%; height:200px; border-radius:12px; background:#333; overflow:hidden;">
                 <img id="f-img" style="width:100%; height:100%; object-fit:cover;" src="https://picsum.photos/400/300">
-                <div id="img-loader"><span>🎨</span><small>Рисую (быстро)...</small></div>
+                <div id="img-loader"><span>🎨</span><small>Рисую...</small></div>
             </div>
-            <p id="f-text" style="margin-top:15px;">Нажми для генерации!</p>
+            <p id="f-text" style="margin-top:15px; min-height: 40px;">Нажми на кнопку для старта!</p>
         </div>
-        <button onclick="generateEverything()" id="gen-btn">🎨 Сгенерировать</button>
+        <button onclick="generateEverything()" id="gen-btn">🎲 Новый факт и картинка</button>
     </div>
 
     <div id="search" class="tab-content">
         <div class="card">
             <h3>🔍 ИИ-Детектор фактов</h3>
             <div style="display:flex; gap:8px;">
-                <input type="text" id="s-in" placeholder="Напиши слово...">
+                <input type="text" id="s-in" placeholder="Слово...">
                 <button onclick="aiFactSearch()" id="s-btn" style="width: 80px;">Ок</button>
             </div>
         </div>
-        <div id="s-res" class="card" style="display:none;"><p id="s-out" style="font-style: italic;"></p></div>
+        <div id="s-res" class="card" style="display:none;"><p id="s-out" style="margin:0;"></p></div>
     </div>
 
     <div id="ai" class="tab-content">
         <div id="chat-area"></div>
         <div style="display:flex; gap:5px;">
-            <input type="text" id="ai-in" placeholder="Спроси у ИИ...">
+            <input type="text" id="ai-in" placeholder="Спроси...">
             <button onclick="ask()" style="width:60px;">🚀</button>
         </div>
     </div>
 
     <div id="games" class="tab-content">
-        <div class="card" onclick="openGame('g2048')">🔢 2048</div>
+        <div class="card" onclick="openGame('g2048')">🔢 2048 (Свайпай поле)</div>
+        <div class="card" onclick="openGame('pc')">🎡 Поле Чудес</div>
         <div class="card" onclick="openGame('cl')">💎 Кликер</div>
     </div>
 
     <div id="g2048" class="game-win">
-        <button onclick="closeGame()" style="width:60px;">⬅</button>
+        <button onclick="closeGame()">⬅ Назад</button>
+        <h3 style="text-align:center;">Счет: <span id="sc-val">0</span></h3>
         <div class="grid" id="grid"></div>
     </div>
+
+    <div id="pc" class="game-win">
+        <button onclick="closeGame()">⬅ Назад</button>
+        <div style="text-align:center; margin-top:10px;">
+            <p id="pc-hint" style="color:var(--accent);"></p>
+            <p id="pc-lives"></p>
+            <div id="pc-word" style="font-size:30px; letter-spacing:5px; margin:20px 0; background:#333; padding:10px; border-radius:10px;"></div>
+            <div id="pc-kb" style="display:grid; grid-template-columns:repeat(8,1fr); gap:5px;"></div>
+        </div>
+    </div>
+
     <div id="cl" class="game-win">
-        <button onclick="closeGame()" style="width:60px;">⬅</button>
+        <button onclick="closeGame()">⬅ Назад</button>
         <div style="text-align:center; margin-top:50px;">
             <h1 id="cl-bal">0 💎</h1>
             <div onclick="tap()" style="font-size:100px; cursor:pointer;">💎</div>
@@ -85,7 +100,7 @@
     </div>
 
     <div class="nav">
-        <div class="nav-item active-nav" onclick="sw('facts',this)"><b>💡</b>Факты</div>
+        <div class="nav-item active-nav" onclick="sw('facts',this)"><b>💡</b>Факт</div>
         <div class="nav-item" onclick="sw('search',this)"><b>🔍</b>Поиск</div>
         <div class="nav-item" onclick="sw('ai',this)"><b>🤖</b>Чат</div>
         <div class="nav-item" onclick="sw('games',this)"><b>🎮</b>Игры</div>
@@ -93,7 +108,7 @@
 
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
-        let bal = 0;
+        let bal = 0, score2048 = 0, b2048 = [];
 
         function sw(id,el){
             document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
@@ -101,62 +116,125 @@
             document.getElementById(id).classList.add('active'); el.classList.add('active-nav');
         }
 
-        // --- УМНЫЙ ЗАПРОС (чтобы не сломать чат) ---
-        async function fetchSmart(p, sys="") {
+        async function fetchAI(p, sys="") {
             try {
                 const r = await fetch(`https://text.pollinations.ai/${encodeURIComponent(p)}?system=${encodeURIComponent(sys)}`);
                 const t = await r.text();
-                if (t.includes('<!DOCTYPE html>')) return "⚠️ Ошибка сервера. Попробуй позже.";
-                return t.trim();
-            } catch(e) { return "⚠️ Ошибка связи."; }
+                return t.includes('<!DOCTYPE html>') ? "⚠️ Ошибка сервера." : t.trim();
+            } catch(e) { return "⚠️ Ошибка сети."; }
         }
 
-        // --- ФАКТЫ + БЫСТРЫЕ КАРТИНКИ ---
+        // --- ГЛАВНАЯ: ФАКТЫ И КАРТИНКИ ---
         async function generateEverything() {
             const t = document.getElementById('f-text'), i = document.getElementById('f-img'), l = document.getElementById('img-loader'), b = document.getElementById('gen-btn');
             b.disabled = true; l.style.display = 'flex';
             try {
                 const fr = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random');
                 const fd = await fr.json();
-                t.innerText = await fetchSmart(`Переведи на русский: ${fd.text}`, "Ты переводчик.");
+                t.innerText = await fetchAI(`Переведи на русский очень точно: ${fd.text}`, "Ты переводчик.");
                 
-                const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fd.text)}?width=512&height=384&seed=${Date.now()}&model=turbo&nologo=true`;
+                const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fd.text)}?width=512&height=384&seed=${Date.now()}&model=turbo`;
                 i.src = imgUrl;
                 i.onload = () => { l.style.display = 'none'; b.disabled = false; };
-                setTimeout(()=> { b.disabled = false; l.style.display = 'none'; }, 12000);
             } catch(e) { b.disabled = false; l.style.display = 'none'; }
         }
 
-        // --- ПОИСК (БЕЗ ЛИШНИХ СЛОВ) ---
         async function aiFactSearch() {
             const inp = document.getElementById('s-in'), out = document.getElementById('s-out'), res = document.getElementById('s-res'), btn = document.getElementById('s-btn');
             if(!inp.value) return;
-            btn.disabled = true; res.style.display = 'block'; out.innerText = "🔍 Ищу...";
-            out.innerText = await fetchSmart(`Придумай короткий факт про ${inp.value}`, "Отвечай ТОЛЬКО текстом факта. Начни с 'А вы знали'.");
+            btn.disabled = true; res.style.display = 'block'; out.innerText = "🕵️‍♂️ Думаю...";
+            out.innerText = await fetchAI(`Придумай короткий факт про ${inp.value}`, "Отвечай ТОЛЬКО текстом факта. Начни с 'А вы знали'.");
             btn.disabled = false;
         }
 
-        // --- ТОТ САМЫЙ ЧАТ (СОХРАНЕН) ---
-        async function ask(){
-            const inp=document.getElementById('ai-in'), a=document.getElementById('chat-area');
+        async function ask() {
+            const inp = document.getElementById('ai-in'), area = document.getElementById('chat-area');
             if(!inp.value) return;
-            const q = inp.value; inp.value="";
-            a.innerHTML += `<div class="m user">${q}</div>`;
-            const m = document.createElement('div'); m.className="m ai"; m.innerText="...";
-            a.appendChild(m); a.scrollTop = a.scrollHeight;
-            m.innerText = await fetchSmart(q, "Ты полезный ассистент.");
-            a.scrollTop = a.scrollHeight;
+            const q = inp.value; inp.value = "";
+            area.innerHTML += `<div class="m user">${q}</div>`;
+            const m = document.createElement('div'); m.className = "m ai"; m.innerText = "...";
+            area.appendChild(m); area.scrollTop = area.scrollHeight;
+            m.innerText = await fetchAI(q, "Ты крутой ассистент.");
+            area.scrollTop = area.scrollHeight;
         }
 
-        function openGame(id){ document.getElementById(id).style.display='block'; if(id==='g2048') init2048(); }
+        // --- ЛОГИКА 2048 ---
+        function init2048() {
+            score2048 = 0; b2048 = Array(4).fill().map(() => Array(4).fill(0));
+            addTile(); addTile(); draw2048();
+        }
+        function addTile() {
+            let empty = [];
+            for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(b2048[r][c]===0) empty.push({r,c});
+            if(empty.length) {
+                let {r,c} = empty[Math.floor(Math.random()*empty.length)];
+                b2048[r][c] = Math.random() > 0.1 ? 2 : 4;
+            }
+        }
+        function draw2048() {
+            const g = document.getElementById('grid'); g.innerHTML = "";
+            b2048.forEach(row => row.forEach(v => {
+                const c = document.createElement('div'); c.className = `cell ${v?'v'+v:''}`;
+                c.innerText = v || ""; g.appendChild(c);
+            }));
+            document.getElementById('sc-val').innerText = score2048;
+        }
+        function move(dir) {
+            let old = JSON.stringify(b2048);
+            for(let i=0; i<4; i++) {
+                let row = dir==='L'||dir==='R' ? b2048[i] : [b2048[0][i], b2048[1][i], b2048[2][i], b2048[3][i]];
+                if(dir==='R'||dir==='D') row.reverse();
+                let combined = slide(row);
+                if(dir==='R'||dir==='D') combined.reverse();
+                for(let j=0; j<4; j++) {
+                    if(dir==='L'||dir==='R') b2048[i][j] = combined[j];
+                    else b2048[j][i] = combined[j];
+                }
+            }
+            if(old !== JSON.stringify(b2048)) { addTile(); draw2048(); }
+        }
+        function slide(row) {
+            let arr = row.filter(v => v);
+            for(let i=0; i<arr.length-1; i++) {
+                if(arr[i] === arr[i+1]) { arr[i] *= 2; score2048 += arr[i]; arr.splice(i+1, 1); }
+            }
+            while(arr.length < 4) arr.push(0);
+            return arr;
+        }
+
+        // --- ЛОГИКА ПОЛЕ ЧУДЕС ---
+        let pcW, pcG, pcL;
+        function initPC() {
+            const d=[{w:"ТИГР",h:"Большая кошка в полоску"},{w:"АЛМАЗ",h:"Самый твердый минерал"},{w:"МОСКВА",h:"Столица России"}];
+            let i=d[Math.floor(Math.random()*d.length)]; pcW=i.w; pcG=[]; pcL=5;
+            document.getElementById('pc-hint').innerText="Подсказка: "+i.h;
+            const kb=document.getElementById('pc-kb'); kb.innerHTML="";
+            "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ".split("").forEach(l=>{
+                const b=document.createElement('div'); b.className="pc-key"; b.innerText=l;
+                b.onclick=()=>{ if(pcG.includes(l)) return; pcG.push(l); if(!pcW.includes(l)) pcL--; b.style.opacity=0.3; drawPC(); };
+                kb.appendChild(b);
+            });
+            drawPC();
+        }
+        function drawPC() {
+            let s=""; for(let l of pcW) s+=pcG.includes(l)?l:"_";
+            document.getElementById('pc-word').innerText=s;
+            document.getElementById('pc-lives').innerText="❤️".repeat(pcL>0?pcL:0);
+            if(!s.includes("_")) { alert("Победа!"); initPC(); } else if(pcL<=0) { alert("Слово: "+pcW); initPC(); }
+        }
+
+        function openGame(id){ document.getElementById(id).style.display='block'; if(id==='g2048') init2048(); if(id==='pc') initPC(); }
         function closeGame(){ document.querySelectorAll('.game-win').forEach(w=>w.style.display='none'); }
         function tap(){ bal++; document.getElementById('cl-bal').innerText = bal + " 💎"; tg.HapticFeedback.impactOccurred('light'); }
 
-        function init2048(){ 
-            const g = document.getElementById('grid'); g.innerHTML = "";
-            for(let i=0; i<16; i++) { const c = document.createElement('div'); c.className = "cell"; g.appendChild(c); }
-            g.children[0].innerText = "2"; g.children[0].classList.add('v2');
-        }
+        // Свайпы для 2048
+        let tsX, tsY;
+        document.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; });
+        document.addEventListener('touchend', e => {
+            let dx = e.changedTouches[0].clientX - tsX, dy = e.changedTouches[0].clientY - tsY;
+            if(Math.abs(dx)>Math.abs(dy)) { if(Math.abs(dx)>30) move(dx>0?'R':'L'); }
+            else { if(Math.abs(dy)>30) move(dy>0?'D':'U'); }
+        });
     </script>
 </body>
 </html>
