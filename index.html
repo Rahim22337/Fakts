@@ -5,67 +5,169 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        :root { --bg: #0d0d0d; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 15px; }
-        input { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #333; background: #1a1a1a; color: #fff; outline: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
-        .results { background: #1a1a1a; border-radius: 12px; display: none; border: 1px solid #222; overflow: hidden; }
-        .item { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid #222; align-items: center; }
-        #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 2000; flex-direction: column; }
+        :root { --bg: #0d0d0d; --card: #1a1a1a; --accent: #ff0000; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 0; overflow-x: hidden; }
+        
+        /* Навигация сверху */
+        .header { padding: 15px; background: #111; border-bottom: 1px solid #222; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
+
+        /* Контентные секции */
+        .page { display: none; padding: 15px; padding-bottom: 80px; }
+        .page.active { display: block; }
+        
+        h2 { font-size: 18px; margin-bottom: 15px; color: #eee; }
+
+        /* Сетка фильмов */
+        .movie-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .movie-card { background: var(--card); border-radius: 8px; overflow: hidden; font-size: 11px; cursor: pointer; position: relative; }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .movie-card .info { padding: 5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rating { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); padding: 2px 5px; border-radius: 4px; font-size: 10px; color: #f1c40f; }
+
+        /* Плеер (Твой рабочий код) */
+        #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 3000; flex-direction: column; }
         .p-nav { padding: 10px; display: flex; justify-content: space-between; background: #111; align-items: center; }
-        .btn { background: #222; color: #fff; border: 1px solid #444; padding: 8px 15px; border-radius: 8px; font-size: 12px; }
         .iframe-wrap { flex: 1; position: relative; background: #000; }
         iframe { width: 100%; height: 100%; border: none; }
+
+        /* Таббар снизу */
+        .tab-bar { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; border-top: 1px solid #222; padding: 10px 0; z-index: 1000; }
+        .tab { flex: 1; text-align: center; font-size: 10px; color: #666; cursor: pointer; }
+        .tab.active { color: var(--accent); }
+        .tab-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+        .btn-fav { background: #333; color: #fff; border: none; padding: 8px; border-radius: 5px; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <input type="text" id="in" placeholder="Введите название..." oninput="search()">
-    <div id="res" class="results"></div>
+    <div id="main-view">
+        <div class="header">
+            <input type="text" id="searchInp" placeholder="Поиск фильма..." oninput="search()">
+        </div>
+
+        <div id="home" class="page active">
+            <h2>🔥 Популярное сейчас</h2>
+            <div id="top-movies" class="movie-grid"></div>
+        </div>
+
+        <div id="favs" class="page">
+            <h2>⭐ Избранное</h2>
+            <div id="fav-movies" class="movie-grid"></div>
+        </div>
+
+        <div id="history" class="page">
+            <h2>⏳ Вы смотрели</h2>
+            <div id="hist-movies" class="movie-grid"></div>
+        </div>
+    </div>
 
     <div id="player-view">
         <div class="p-nav">
-            <span id="p-title" style="font-size: 13px; font-weight: bold;"></span>
-            <button class="btn" onclick="closeP()">Закрыть</button>
+            <button class="btn-fav" id="fav-btn" onclick="toggleFavorite()">+ Избранное</button>
+            <span id="p-title" style="font-size: 12px; max-width: 40%; overflow: hidden;"></span>
+            <button class="btn-fav" onclick="closeP()" style="background:#444">Закрыть</button>
         </div>
         <div class="iframe-wrap" id="v-wrap"></div>
+    </div>
+
+    <div class="tab-bar">
+        <div class="tab active" onclick="showPage('home', this)"><span class="tab-icon">🎬</span>Главная</div>
+        <div class="tab" onclick="showPage('favs', this)"><span class="tab-icon">⭐</span>Избранное</div>
+        <div class="tab" onclick="showPage('history', this)"><span class="tab-icon">⏳</span>История</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        const key = '8c8e1a50-6322-4135-8875-5d40a5420d86';
+        const api_key = '8c8e1a50-6322-4135-8875-5d40a5420d86';
+        let currentMovie = null;
 
-        async function search() {
-            const q = document.getElementById('in').value;
-            const box = document.getElementById('res');
-            if(q.length < 3) { box.style.display = 'none'; return; }
+        // Инициализация при запуске
+        window.onload = () => {
+            loadTop();
+            renderGrid('fav-movies', JSON.parse(localStorage.getItem('favs') || '[]'));
+            renderGrid('hist-movies', JSON.parse(localStorage.getItem('history') || '[]'));
+        };
 
-            const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(q)}`, {
-                headers: { 'X-API-KEY': key }
+        function showPage(pageId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            el.classList.add('active');
+        }
+
+        async function loadTop() {
+            const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/collections?type=TOP_POPULAR_MOVIES`, {
+                headers: { 'X-API-KEY': api_key }
             });
             const d = await r.json();
-            box.innerHTML = ''; box.style.display = 'block';
-            d.films.slice(0, 5).forEach(f => {
+            renderGrid('top-movies', d.items);
+        }
+
+        async function search() {
+            const q = document.getElementById('searchInp').value;
+            if(q.length < 3) { loadTop(); return; }
+            const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${encodeURIComponent(q)}`, {
+                headers: { 'X-API-KEY': api_key }
+            });
+            const d = await r.json();
+            renderGrid('top-movies', d.films.map(f => ({...f, kinopoiskId: f.filmId})));
+        }
+
+        function renderGrid(containerId, items) {
+            const box = document.getElementById(containerId);
+            box.innerHTML = items.length ? '' : '<p style="color:#444; grid-column: 1/4; text-align:center">Тут пока пусто...</p>';
+            items.forEach(f => {
                 const div = document.createElement('div');
-                div.className = 'item';
-                div.onclick = () => openP(f.filmId, f.nameRu || f.nameEn);
-                div.innerHTML = `<img src="${f.posterUrlPreview}" width="40"><div><b>${f.nameRu || f.nameEn}</b></div>`;
+                div.className = 'movie-card';
+                div.onclick = () => openP(f.kinopoiskId || f.filmId, f.nameRu || f.nameEn, f.posterUrlPreview);
+                div.innerHTML = `
+                    <div class="rating">${f.ratingKinopoisk || f.rating || '—'}</div>
+                    <img src="${f.posterUrlPreview}">
+                    <div class="info">${f.nameRu || f.nameEn}</div>
+                `;
                 box.appendChild(div);
             });
         }
 
-        function openP(id, title) {
+        function openP(id, title, img) {
+            currentMovie = { kinopoiskId: id, nameRu: title, posterUrlPreview: img };
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
             
-            // Чтобы открывался сразу Плеер 2 (без рекламы), мы добавляем якорь или параметр.
-            // Большинство таких сайтов понимают параметр ?player=2 или путь /source2/
+            // Твой рабочий плеер (Форсируем Плеер 2)
             const playUrl = `https://www.kinopoisk.gg/film/${id}/?player=2`; 
+            document.getElementById('v-wrap').innerHTML = `<iframe src="${playUrl}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin"></iframe>`;
             
-            document.getElementById('v-wrap').innerHTML = `
-                <iframe src="${playUrl}" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
-            `;
+            saveToHistory(currentMovie);
+            updateFavBtn();
             tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function saveToHistory(movie) {
+            let hist = JSON.parse(localStorage.getItem('history') || '[]');
+            hist = hist.filter(m => m.kinopoiskId !== movie.kinopoiskId);
+            hist.unshift(movie);
+            localStorage.setItem('history', JSON.stringify(hist.slice(0, 20)));
+            renderGrid('hist-movies', hist);
+        }
+
+        function toggleFavorite() {
+            let favs = JSON.parse(localStorage.getItem('favs') || '[]');
+            const isFav = favs.some(m => m.kinopoiskId === currentMovie.kinopoiskId);
+            if(isFav) favs = favs.filter(m => m.kinopoiskId !== currentMovie.kinopoiskId);
+            else favs.push(currentMovie);
+            localStorage.setItem('favs', JSON.stringify(favs));
+            updateFavBtn();
+            renderGrid('fav-movies', favs);
+        }
+
+        function updateFavBtn() {
+            const favs = JSON.parse(localStorage.getItem('favs') || '[]');
+            const isFav = favs.some(m => m.kinopoiskId === currentMovie.kinopoiskId);
+            document.getElementById('fav-btn').innerText = isFav ? '★ В избранном' : '+ Избранное';
         }
 
         function closeP() {
