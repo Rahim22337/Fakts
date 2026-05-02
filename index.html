@@ -10,32 +10,32 @@
         
         .search-area { position: sticky; top: 0; background: var(--bg); padding-bottom: 15px; z-index: 100; }
         .input-group { display: flex; gap: 8px; }
-        input { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; }
-        button { background: var(--accent); color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        input { flex: 1; padding: 14px; border-radius: 12px; border: 1px solid #333; background: #222; color: #fff; outline: none; font-size: 14px; }
+        button { background: var(--accent); color: #fff; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 14px; }
 
         .results { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; }
-        .item { background: var(--card); border-radius: 12px; overflow: hidden; position: relative; border: 1px solid #222; }
-        .item img { width: 100%; height: 240px; object-fit: cover; }
+        .item { background: var(--card); border-radius: 12px; overflow: hidden; position: relative; border: 1px solid #222; cursor: pointer; }
+        .item img { width: 100%; height: 240px; object-fit: cover; background: #333; }
         .item-info { padding: 10px; font-size: 13px; text-align: center; }
-        .item-year { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        .item-year { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; }
 
         #player-overlay { display: none; position: fixed; inset: 0; background: #000; z-index: 1000; }
-        .close-p { position: absolute; top: 15px; left: 15px; z-index: 1001; background: #333; color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .close-p { position: absolute; top: 15px; left: 15px; z-index: 1001; background: rgba(50,50,50,0.8); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; }
+        iframe { width: 100%; height: 100%; border: none; background: #000; }
         
-        .loading { text-align: center; color: #888; margin-top: 50px; }
+        .loading { text-align: center; color: #aaa; margin-top: 50px; font-size: 14px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
     <div class="search-area">
         <div class="input-group">
-            <input type="text" id="q" placeholder="Название фильма или аниме..." onkeypress="if(event.key==='Enter') search()">
+            <input type="text" id="q" placeholder="Мстители, Наруто..." onkeypress="if(event.key==='Enter') search()">
             <button onclick="search()">Найти</button>
         </div>
     </div>
 
-    <div id="status" class="loading"></div>
+    <div id="status" class="loading">Напиши название фильма или аниме 🍿<br><small style="opacity: 0.5;">Даже если с ошибкой, я постараюсь найти.</small></div>
     <div class="results" id="res"></div>
 
     <div id="player-overlay">
@@ -48,43 +48,60 @@
         tg.expand();
 
         async function search() {
-            const query = document.getElementById('q').value;
+            const query = document.getElementById('q').value.trim();
             const resDiv = document.getElementById('res');
             const status = document.getElementById('status');
             
             if(!query) return;
 
             resDiv.innerHTML = "";
-            status.innerHTML = "🌀 Ищу во всех базах данных...";
+            status.innerHTML = "⏳ Обхожу блокировки и ищу в базе...";
 
             try {
-                // Используем самый стабильный поисковый движок для пиратских баз
-                const response = await fetch(`https://kinobox.tv/api/films/search?title=${encodeURIComponent(query)}`);
+                // 1. Формируем запрос к базе
+                const targetUrl = `https://kinobox.tv/api/films/search?title=${encodeURIComponent(query)}`;
+                
+                // 2. Оборачиваем его в CORS-прокси, чтобы Telegram не заблокировал запрос
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) throw new Error('Proxy blocked');
+                
                 const data = await response.json();
 
                 status.innerHTML = "";
                 
                 if(!data || data.length === 0) {
-                    status.innerHTML = "Ничего не нашлось. Попробуй другое название!";
+                    status.innerHTML = "🤷‍♂️ Ничего не нашлось. Попробуй написать иначе.";
                     return;
                 }
 
+                // Рисуем карточки
                 data.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'item';
                     div.onclick = () => play(item.id);
+                    
+                    // Заглушка, если нет постера
+                    const poster = item.posterUrl ? item.posterUrl : 'https://via.placeholder.com/200x300/222222/ffffff?text=Нет+постера';
+                    
                     div.innerHTML = `
-                        <div class="item-year">${item.year || '...'}</div>
-                        <img src="${item.posterUrl || 'https://via.placeholder.com/200x300?text=No+Poster'}">
+                        <div class="item-year">${item.year || 'N/A'}</div>
+                        <img src="${poster}">
                         <div class="item-info">
-                            <b>${item.title}</b><br>
-                            <small style="color:#aaa">${item.titleOriginal || ''}</small>
+                            <b style="color:var(--text);">${item.title}</b><br>
+                            <small style="color:#888">${item.titleOriginal || ''}</small>
                         </div>
                     `;
                     resDiv.appendChild(div);
                 });
+                
+                tg.HapticFeedback.impactOccurred('light');
+
             } catch (e) {
-                status.innerHTML = "⚠️ Ошибка связи с базой. Попробуй включить/выключить VPN или подожди минуту.";
+                status.innerHTML = "⚠️ Ошибка связи через прокси. Похоже, база сильно перегружена. Попробуй чуть позже.";
+                console.error(e);
             }
         }
 
@@ -93,14 +110,14 @@
             const frame = document.getElementById('video-frame');
             overlay.style.display = 'block';
             
-            // Вставляем плеер-агрегатор, который сам подбирает рабочую озвучку и источник
+            // Встраиваем плеер
             frame.innerHTML = `<iframe src="https://kinobox.tv/embed/kp/${kpId}" allowfullscreen></iframe>`;
             tg.HapticFeedback.impactOccurred('heavy');
         }
 
         function stop() {
             document.getElementById('player-overlay').style.display = 'none';
-            document.getElementById('video-frame').innerHTML = ""; 
+            document.getElementById('video-frame').innerHTML = ""; // Выключаем видео при закрытии
         }
     </script>
 </body>
