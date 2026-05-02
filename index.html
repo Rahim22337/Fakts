@@ -3,7 +3,7 @@
 <head>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <style>
         :root { --bg: #0d0d0d; --card: #1a1a1a; --accent: #e50914; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: #fff; margin: 0; padding: 0; }
@@ -11,28 +11,22 @@
         .header { position: sticky; top: 0; z-index: 1000; padding: 12px; background: #111; border-bottom: 1px solid #222; }
         input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #222; color: #fff; outline: none; box-sizing: border-box; font-size: 16px; }
 
-        .page { display: none; padding: 12px; padding-bottom: 120px; min-height: 100vh; box-sizing: border-box; }
+        .page { display: none; padding: 12px; padding-bottom: 140px; min-height: 100vh; box-sizing: border-box; }
         .page.active { display: block; }
-        h2 { font-size: 18px; margin: 10px 0; }
+        .page-head { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        h2 { font-size: 18px; margin: 0; }
 
         .movie-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .movie-card { background: var(--card); border-radius: 8px; overflow: hidden; position: relative; }
         .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
         .movie-card .info { padding: 6px; font-size: 11px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .rating { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: #f1c40f; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        
+        /* Кнопка удаления */
+        .del-btn { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 4px; padding: 4px 6px; font-size: 12px; z-index: 10; }
+        .rating { position: absolute; top: 5px; right: 5px; background: rgba(229, 9, 20, 0.9); color: #fff; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: bold; }
 
-        /* ИСПРАВЛЕННЫЙ ТАББАР */
-        .tab-bar { 
-            position: fixed; 
-            bottom: 0; 
-            width: 100%; 
-            background: #111; 
-            display: flex; 
-            border-top: 1px solid #222; 
-            padding: 12px 0 25px 0; /* Подняли текст выше */
-            z-index: 2000; 
-        }
-        .tab { flex: 1; text-align: center; font-size: 11px; color: #666; transition: 0.2s; }
+        .tab-bar { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; border-top: 1px solid #222; padding: 12px 0 30px 0; z-index: 2000; }
+        .tab { flex: 1; text-align: center; font-size: 11px; color: #666; }
         .tab.active { color: var(--accent); }
         .tab-icon { font-size: 22px; display: block; margin-bottom: 4px; }
 
@@ -40,9 +34,10 @@
         .p-nav { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #111; }
         .iframe-wrap { flex: 1; background: #000; }
         iframe { width: 100%; height: 100%; border: none; }
-        .btn-ui { background: #222; border: 1px solid #444; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; }
+        .btn-ui { background: #222; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
         
         .loading-text { grid-column: 1/4; text-align: center; padding: 20px; color: #666; }
+        .clear-all { font-size: 12px; color: var(--accent); text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -58,12 +53,17 @@
     </div>
 
     <div id="fav-page" class="page">
-        <h2>⭐ Избранное</h2>
+        <div class="page-head">
+            <h2>⭐ Избранное</h2>
+        </div>
         <div id="fav-grid" class="movie-grid"></div>
     </div>
 
     <div id="hist-page" class="page">
-        <h2>⏳ История</h2>
+        <div class="page-head">
+            <h2>⏳ История</h2>
+            <span class="clear-all" onclick="clearHistory()">Очистить всё</span>
+        </div>
         <div id="hist-grid" class="movie-grid"></div>
     </div>
 
@@ -111,6 +111,7 @@
         }
 
         async function loadHome() {
+            if (loading) return;
             loading = true;
             try {
                 const r = await fetch(`https://kinopoiskapiunofficial.tech/api/v2.2/films/collections?type=TOP_POPULAR_MOVIES&page=${page}`, {
@@ -132,11 +133,8 @@
                 const title = document.getElementById('list-title');
                 if (q.length < 3) {
                     isSearching = false;
-                    page = 1;
-                    grid.innerHTML = '';
-                    title.innerText = "🔥 Популярное";
-                    loadHome();
-                    return;
+                    page = 1; grid.innerHTML = ''; title.innerText = "🔥 Популярное";
+                    loadHome(); return;
                 }
                 isSearching = true;
                 title.innerText = "🔍 Результаты";
@@ -154,8 +152,16 @@
             items.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'movie-card';
-                card.onclick = () => openPlayer(m.kinopoiskId || m.filmId, m.nameRu || m.nameEn, m.posterUrlPreview);
+                const id = m.kinopoiskId || m.filmId;
+                
+                let delBtn = '';
+                if(containerId !== 'main-grid') {
+                    delBtn = `<button class="del-btn" onclick="removeItem(event, '${containerId}', ${id})">🗑️</button>`;
+                }
+
+                card.onclick = () => openPlayer(id, m.nameRu || m.nameEn, m.posterUrlPreview);
                 card.innerHTML = `
+                    ${delBtn}
                     <div class="rating">${m.ratingKinopoisk || m.rating || '—'}</div>
                     <img src="${m.posterUrlPreview}" loading="lazy">
                     <div class="info">${m.nameRu || m.nameEn}</div>
@@ -169,8 +175,8 @@
             document.getElementById('player-view').style.display = 'flex';
             document.getElementById('p-title').innerText = title;
             
-            // ИСПРАВЛЕННЫЙ ПЛЕЕР С ЗАЩИТОЙ
-            const url = `https://www.kinopoisk.gg/film/${id}/?player=2`;
+            // ЖЕСТКИЙ ВЫЗОВ ПЛЕЕРА 2
+            const url = `https://www.kinopoisk.gg/film/${id}/?player=2&nocache=${Date.now()}`;
             document.getElementById('v-container').innerHTML = `
                 <iframe src="${url}" 
                     allowfullscreen 
@@ -192,8 +198,25 @@
             let h = JSON.parse(localStorage.getItem('hist') || '[]');
             h = h.filter(x => x.kinopoiskId !== m.kinopoiskId);
             h.unshift(m);
-            localStorage.setItem('hist', JSON.stringify(h.slice(0, 30)));
+            localStorage.setItem('hist', JSON.stringify(h.slice(0, 40)));
             updateGrids();
+        }
+
+        function removeItem(e, type, id) {
+            e.stopPropagation();
+            let key = type === 'fav-grid' ? 'favs' : 'hist';
+            let data = JSON.parse(localStorage.getItem(key) || '[]');
+            data = data.filter(x => x.kinopoiskId !== id);
+            localStorage.setItem(key, JSON.stringify(data));
+            updateGrids();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function clearHistory() {
+            if(confirm('Очистить всю историю просмотров?')) {
+                localStorage.setItem('hist', '[]');
+                updateGrids();
+            }
         }
 
         function toggleFav() {
